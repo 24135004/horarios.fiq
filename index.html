@@ -764,32 +764,43 @@ X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527
                         <div className="fixed inset-0 bg-black/50 z-40 lg:hidden" onClick={() => setIsSidebarOpen(false)}></div>
                     )}
 
-                    {/* BARRA LATERAL IZQUIERDA BLANCA */}
+                    {/* BARRA LATERAL IZQUIERDA BLANCA - EXACTAMENTE COMO LA IMAGEN SOLICITADA */}
                     <aside className={`fixed lg:static top-0 left-0 h-full bg-white border-r border-slate-200 w-64 z-50 transform transition-transform duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0 lg:w-0 lg:hidden'} flex flex-col shrink-0 shadow-[4px_0_24px_rgba(0,0,0,0.02)]`}>
-                        <div className="p-6 flex flex-col items-center border-b border-slate-100 relative">
+                        
+                        {/* Cabecera Sidebar (Logo Icono + Texto) */}
+                        <div className="p-6 flex flex-col items-center relative border-b border-slate-100">
                             <button className="lg:hidden absolute top-4 right-4 text-slate-400 hover:text-slate-600" onClick={() => setIsSidebarOpen(false)}>
                                 <i className="fa-solid fa-xmark text-xl"></i>
                             </button>
                             
-                            <img src="logo-ceet.png" alt="Logo CEET FIQ" className="w-36 h-auto object-contain mb-3" 
-                                 onError={(e) => { e.target.style.display='none'; e.target.nextSibling.style.display='flex'; }} />
-                            <div className="hidden flex-col items-center text-center">
-                                <i className="fa-solid fa-flask text-4xl text-[#006b5e] mb-2"></i>
-                                <h1 className="font-black text-xl text-slate-800 tracking-tight">CEET <span className="text-[#006b5e]">FIQ</span></h1>
+                            <div className="flex flex-col items-center text-center pt-2">
+                                <i className="fa-solid fa-flask text-[40px] text-[#006b5e] mb-2"></i>
+                                <h1 className="font-black text-2xl text-slate-900 tracking-tight leading-none">CEET <span className="text-[#006b5e]">FIQ</span></h1>
                             </div>
-                            {/* Insignia solicitada en la imagen */}
-                            <span className="text-[10px] italic text-emerald-600 font-bold mt-2 bg-emerald-50 px-3 py-1 rounded-md text-center border border-emerald-100">"De estudiantes para estudiantes"</span>
+                            <span className="text-[9px] italic text-[#006b5e] font-black mt-3 bg-[#e6fcf5] px-3 py-1.5 rounded-md text-center border border-[#bbf7d0] tracking-wide">"De estudiantes para estudiantes"</span>
                         </div>
 
+                        {/* Menú de Navegación Sidebar */}
                         <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto scroll-clean">
-                            <a href="#" onClick={(e) => e.preventDefault()} className="flex items-center gap-3 px-4 py-3 bg-emerald-50 text-emerald-600 rounded-xl font-bold transition"><i className="fa-solid fa-calendar-days w-5"></i> Planificador</a>
-                            <a href="#" onClick={(e) => { e.preventDefault(); setModals({...modals, misHorarios: true}); }} className="flex items-center gap-3 px-4 py-3 text-slate-500 hover:bg-slate-50 hover:text-slate-700 rounded-xl font-semibold transition"><i className="fa-solid fa-clock-rotate-left w-5"></i> Mis Horarios</a>
-                            <a href="#" onClick={(e) => e.preventDefault()} className="flex items-center gap-3 px-4 py-3 text-slate-500 hover:bg-slate-50 hover:text-slate-700 rounded-xl font-semibold transition"><i className="fa-solid fa-book w-5"></i> Catálogo de Cursos</a>
-                            <a href="#" onClick={(e) => { e.preventDefault(); setModals({...modals, estadisticas: true}); }} className="flex items-center gap-3 px-4 py-3 text-slate-500 hover:bg-slate-50 hover:text-slate-700 rounded-xl font-semibold transition"><i className="fa-solid fa-chart-simple w-5"></i> Estadísticas</a>
+                            <a href="#" onClick={(e) => e.preventDefault()} className="flex items-center gap-3 px-4 py-3.5 bg-[#ecfdf5] text-[#006b5e] rounded-xl font-bold transition">
+                                <i className="fa-solid fa-calendar-days text-base w-5 text-center"></i> Planificador
+                            </a>
+                            <a href="#" onClick={(e) => { e.preventDefault(); setModals({...modals, misHorarios: true}); }} className="flex items-center gap-3 px-4 py-3.5 text-slate-500 hover:bg-slate-50 hover:text-slate-700 rounded-xl font-bold transition">
+                                <i className="fa-solid fa-clock-rotate-left text-base w-5 text-center"></i> Mis Horarios
+                            </a>
+                            <a href="#" onClick={(e) => e.preventDefault()} className="flex items-center gap-3 px-4 py-3.5 text-slate-500 hover:bg-slate-50 hover:text-slate-700 rounded-xl font-bold transition">
+                                <i className="fa-solid fa-book text-base w-5 text-center"></i> Catálogo de Cursos
+                            </a>
+                            <a href="#" onClick={(e) => { e.preventDefault(); setModals({...modals, estadisticas: true}); }} className="flex items-center gap-3 px-4 py-3.5 text-slate-500 hover:bg-slate-50 hover:text-slate-700 rounded-xl font-bold transition">
+                                <i className="fa-solid fa-chart-simple text-base w-5 text-center"></i> Estadísticas
+                            </a>
                         </nav>
                         
-                        <div className="p-4 border-t border-slate-100">
-                            <a href="#" onClick={(e) => { e.preventDefault(); setModals({...modals, ajustes: true}); }} className="flex items-center gap-3 px-4 py-3 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-xl font-bold transition border border-slate-200 shadow-sm"><i className="fa-solid fa-gear w-5 text-center"></i> Ajustes</a>
+                        {/* Botón Inferior Sidebar */}
+                        <div className="p-5 w-full mt-auto">
+                            <a href="#" onClick={(e) => { e.preventDefault(); setModals({...modals, ajustes: true}); }} className="flex items-center gap-3 px-4 py-3 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-xl font-bold transition border border-slate-200 w-full justify-start">
+                                <i className="fa-solid fa-gear text-base w-5 text-center"></i> Ajustes
+                            </a>
                         </div>
                     </aside>
 
