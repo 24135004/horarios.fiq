@@ -390,7 +390,6 @@ X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527
                 const codigo = codeMatch ? codeMatch[1] : "FIQ";
                 const cursoNombre = prePlan.replace(/-\s*[A-Z0-9]+$/, '').trim();
                 
-                // ASIGNAR CRÉDITOS EXACTOS
                 const creditosReales = creditosMap[cursoNombre] || 4;
 
                 const postPlanWords = postPlan.split(' ');
@@ -457,12 +456,10 @@ X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527
         const dbCursos = parseData();
         const borderColors = ['border-[#3b82f6]', 'border-[#0ea5e9]', 'border-[#6366f1]', 'border-[#8b5cf6]', 'border-[#2dd4bf]'];
 
-        // === COMPONENTE MODAL DE CRUCE ===
+        // === MODAL DE CRUCE ===
         const ConflictModal = ({ conflictData, onClose, onForceReplace, onSelectSuggestion }) => {
             if (!conflictData) return null;
-
             const { curso, seccion, conflict, suggestions } = conflictData;
-
             return (
                 <div className="fixed inset-0 bg-slate-900/70 z-[120] flex items-center justify-center p-4 modal-bg">
                     <div className="bg-white rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl relative">
@@ -525,6 +522,38 @@ X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527
             );
         };
 
+        // === MODAL DE VACIAR HORARIO (NUEVO) ===
+        const ClearModal = ({ isOpen, onClose, onConfirm }) => {
+            if (!isOpen) return null;
+            return (
+                <div className="fixed inset-0 bg-slate-900/70 z-[120] flex items-center justify-center p-4 modal-bg">
+                    <div className="bg-white rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl relative">
+                        <button onClick={onClose} className="absolute top-5 right-5 w-8 h-8 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 flex items-center justify-center transition-colors">
+                            <i className="fa-solid fa-xmark"></i>
+                        </button>
+
+                        <div className="p-8 pb-6 flex flex-col items-center text-center">
+                            <div className="w-16 h-16 bg-red-100 text-red-500 rounded-2xl flex items-center justify-center text-3xl mb-4 border-2 border-red-50">
+                                <i className="fa-regular fa-trash-can"></i>
+                            </div>
+                            
+                            <h3 className="text-xl font-black text-slate-800 mb-2">Vaciar Horario</h3>
+                            <p className="text-sm text-slate-500 font-medium">¿Estás seguro de que deseas eliminar todos los cursos de tu horario? Esta acción se puede deshacer.</p>
+                        </div>
+
+                        <div className="px-8 py-5 border-t border-slate-100 bg-slate-50 flex gap-3">
+                            <button onClick={onClose} className="flex-1 bg-white border border-slate-200 text-slate-600 hover:bg-slate-100 py-2.5 rounded-xl text-xs font-bold transition">
+                                Cancelar
+                            </button>
+                            <button onClick={onConfirm} className="flex-1 bg-red-600 hover:bg-red-700 text-white py-2.5 rounded-xl text-xs font-bold transition shadow-sm">
+                                Sí, vaciar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
         const App = () => {
             const [seccionesAgregadas, setSeccionesAgregadas] = useState([]);
             const [historial, setHistorial] = useState([]);
@@ -534,6 +563,7 @@ X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527
             const [toast, setToast] = useState({ visible: false, message: '', type: 'success' });
             
             const [conflictModalData, setConflictModalData] = useState(null);
+            const [isClearModalOpen, setIsClearModalOpen] = useState(false); // ESTADO DEL NUEVO MODAL
             
             const calendarRef = useRef(null);
             const hiddenExportRef = useRef(null);
@@ -700,11 +730,20 @@ X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527
                 showToast(`Sección ${sug.seccion} agregada sin cruces.`, 'success');
             };
 
-            const limpiarHorario = () => {
-                if(seccionesAgregadas.length > 0 && confirm("¿Vaciar todo el horario?")) {
-                    setHistorial(prev => [...prev, seccionesAgregadas]);
-                    setSeccionesAgregadas([]);
+            // === LÓGICA VACIAR HORARIO (NUEVA) ===
+            const triggerLimpiarHorario = () => {
+                if(seccionesAgregadas.length > 0) {
+                    setIsClearModalOpen(true);
+                } else {
+                    showToast("Tu horario ya está vacío.", 'error');
                 }
+            };
+
+            const confirmLimpiarHorario = () => {
+                setHistorial(prev => [...prev, seccionesAgregadas]);
+                setSeccionesAgregadas([]);
+                setIsClearModalOpen(false);
+                showToast("Horario vaciado correctamente.", 'success');
             };
 
             const undoAction = () => {
@@ -810,8 +849,11 @@ X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527
 
             return (
                 <React.Fragment>
+                    {/* MODALES */}
                     <ConflictModal conflictData={conflictModalData} onClose={() => setConflictModalData(null)} onForceReplace={handleForceReplace} onSelectSuggestion={handleSelectSuggestion} />
+                    <ClearModal isOpen={isClearModalOpen} onClose={() => setIsClearModalOpen(false)} onConfirm={confirmLimpiarHorario} />
 
+                    {/* TOAST NOTIFICATION */}
                     {toast.visible && (
                         <div className={`fixed bottom-6 right-6 px-5 py-3 rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.15)] flex items-center gap-4 z-[110] animate-[popIn_0.3s_ease-out] border-2 ${toast.type === 'error' ? 'bg-white border-red-500' : 'bg-white border-emerald-500'}`}>
                             <i className={`text-2xl ${toast.type === 'error' ? 'fa-solid fa-circle-exclamation text-red-500' : 'fa-solid fa-circle-check text-emerald-500'}`}></i>
@@ -922,6 +964,7 @@ X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527
                                                                 const labs = Object.keys(base.labs);
                                                                 const tpID = `${curso.id}_${base.seccion}_TP`;
                                                                 const isTPAdded = seccionesAgregadas.some(s => s.id === tpID);
+
                                                                 const cupos = hasTP ? base.tp[0].cupos : (labs.length > 0 ? base.labs[labs[0]][0].cupos : "40");
 
                                                                 return (
@@ -1008,9 +1051,11 @@ X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527
                                     <span className="bg-slate-50 text-slate-500 border border-slate-200 text-[10px] font-bold px-2 py-1 rounded-md ml-2 uppercase tracking-wider">Vista Semanal</span>
                                 </div>
                                 <div className="flex items-center gap-2 relative">
-                                    <button onClick={limpiarHorario} className="bg-white border border-red-200 text-red-500 hover:bg-red-50 px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 shadow-sm">
+                                    {/* CAMBIO AQUÍ: Llamamos a triggerLimpiarHorario en lugar del confirm nativo */}
+                                    <button onClick={triggerLimpiarHorario} className="bg-white border border-red-200 text-red-500 hover:bg-red-50 px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 shadow-sm">
                                         <i className="fa-regular fa-trash-can"></i> Vaciar
                                     </button>
+                                    
                                     <button onClick={undoAction} disabled={historial.length === 0} className="bg-white border border-slate-200 text-slate-500 hover:bg-slate-50 px-3 py-2 rounded-xl text-sm transition flex items-center justify-center disabled:opacity-50 shadow-sm" title="Deshacer">
                                         <i className="fa-solid fa-rotate-left"></i>
                                     </button>
