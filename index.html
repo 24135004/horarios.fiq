@@ -12,7 +12,6 @@
             theme: {
                 extend: {
                     colors: {
-                        // Paleta Azulino Tech
                         brand: { 
                             DEFAULT: '#1e40af', // Blue 800
                             light: '#eff6ff',   // Blue 50
@@ -47,19 +46,16 @@
         .scroll-clean::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 10px; }
         .scroll-clean::-webkit-scrollbar-thumb:hover { background: #64748b; }
         
-        /* Grid del calendario Tech */
         .grid-bg { background-image: linear-gradient(to bottom, #e2e8f0 1px, transparent 1px); background-size: 100% 60px; }
         
         @keyframes popIn { 0% { transform: scale(0.95); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
         .class-block { animation: popIn 0.2s ease-out; box-shadow: 0 4px 10px rgba(0,0,0,0.08); transition: transform 0.2s ease; }
         .class-block:hover { transform: translateY(-2px); box-shadow: 0 6px 15px rgba(0,0,0,0.12); z-index: 30; }
         
-        /* Dropdown Animation */
         .dropdown-menu { transform-origin: top right; transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1); }
         .dropdown-open { opacity: 1; transform: scale(1); pointer-events: auto; }
         .dropdown-closed { opacity: 0; transform: scale(0.95); pointer-events: none; }
 
-        /* Estilos del Globo 3D Neón Azulino - Footer */
         .globe-container { perspective: 1000px; width: 50px; height: 50px; margin: 0 auto 5px; position: relative; z-index: 10;}
         .globe { width: 100%; height: 100%; transform-style: preserve-3d; animation: spin 12s linear infinite; }
         .ring { position: absolute; width: 100%; height: 100%; border: 1px solid rgba(14, 165, 233, 0.4); border-radius: 50%; box-shadow: 0 0 8px rgba(14, 165, 233, 0.3) inset;}
@@ -302,7 +298,7 @@ X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527
 X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527 02Q Lun	18:50 a 21:20 FIQ2A04 PRESENCIAL T 80 Completado CALLAO
 X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527 02Q Jue	16:20 a 18:50 FIQ2A04 PRESENCIAL P 80 Completado CALLAO`;
 
-        // === PARSER PRECISO (SIN SUPOSICIONES) ===
+        // === PARSER PRECISO ===
         const parseData = () => {
             const lines = rawTableData.trim().split('\n');
             const courseMap = {};
@@ -396,11 +392,13 @@ X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527
             const [filtroCiclo, setFiltroCiclo] = useState('Todos');
             const [busqueda, setBusqueda] = useState('');
             const [dropdownOpen, setDropdownOpen] = useState(false);
+            const [toast, setToast] = useState({ visible: false, message: '', type: 'success' }); // Sistema de Alertas
             
             const calendarRef = useRef(null);
             const hiddenExportRef = useRef(null);
 
             const MAX_CREDITOS = 22;
+            const MIN_CREDITOS = 12;
 
             const timeToMins = (timeStr) => {
                 if(!timeStr) return 0;
@@ -410,6 +408,11 @@ X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527
 
             const formatHourLine = (num) => {
                 return `${String(num).padStart(2, '0')}:00`;
+            };
+
+            const showToast = (msg, type='success') => {
+                setToast({ visible: true, message: msg, type });
+                setTimeout(() => setToast(prev => ({ ...prev, visible: false })), 4000);
             };
 
             const { totalCreditos, crucesCount, horasSemanales, horasLibres } = useMemo(() => {
@@ -504,9 +507,25 @@ X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527
                 }
             };
 
+            // === LÓGICA DE VALIDACIÓN ANTES DE EXPORTAR ===
+            const validateExport = () => {
+                if (totalCreditos < MIN_CREDITOS) {
+                    showToast(`Error: Necesitas un mínimo de ${MIN_CREDITOS} créditos para exportar tu horario (Tienes ${totalCreditos}).`, 'error');
+                    return false;
+                }
+                if (crucesCount > 0) {
+                    showToast(`Error: Tienes ${crucesCount} cruce(s) de horario. Resuélvelos antes de exportar.`, 'error');
+                    return false;
+                }
+                showToast("Generando exportación de alta calidad...", 'success');
+                return true;
+            };
+
             // === FUNCIONES DE EXPORTACIÓN PPREMIUM ===
             const exportarPNG = () => {
                 setDropdownOpen(false);
+                if (!validateExport()) return; // Valida antes de proceder
+
                 if(hiddenExportRef.current) {
                     hiddenExportRef.current.style.display = 'block';
                     html2canvas(hiddenExportRef.current, { scale: 2, backgroundColor: '#ffffff' }).then(canvas => {
@@ -521,6 +540,8 @@ X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527
 
             const exportarPDF = () => {
                 setDropdownOpen(false);
+                if (!validateExport()) return; // Valida antes de proceder
+
                 if(hiddenExportRef.current) {
                     hiddenExportRef.current.style.display = 'block';
                     html2canvas(hiddenExportRef.current, { scale: 2, backgroundColor: '#ffffff' }).then(canvas => {
@@ -538,6 +559,8 @@ X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527
 
             const exportarWord = () => {
                 setDropdownOpen(false);
+                if (!validateExport()) return; // Valida antes de proceder
+
                 let tableHtml = "<table border='1' style='width:100%; border-collapse: collapse; font-family: Arial, sans-serif; font-size: 11px;'>";
                 tableHtml += "<tr style='background-color:#1e40af; color:white;'><th>CURSO</th><th>SECCIÓN</th><th>DÍA</th><th>HORA</th><th>AULA</th><th>DOCENTE</th></tr>";
                 
@@ -583,6 +606,15 @@ X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527
 
             return (
                 <React.Fragment>
+                    {/* === TOAST NOTIFICATION SYSTEM === */}
+                    {toast.visible && (
+                        <div className={`fixed bottom-6 right-6 px-5 py-3 rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.1)] flex items-center gap-4 z-[110] animate-[popIn_0.3s_ease-out] border ${toast.type === 'error' ? 'bg-red-50 border-red-200' : 'bg-[#edfdf4] border-[#a7f3d0]'}`}>
+                            <i className={`text-xl ${toast.type === 'error' ? 'fa-solid fa-circle-exclamation text-red-500' : 'fa-regular fa-circle-check text-emerald-500'}`}></i>
+                            <div className={`text-sm font-bold ${toast.type === 'error' ? 'text-red-800' : 'text-slate-700'}`}>{toast.message}</div>
+                            <button onClick={() => setToast({visible: false})} className="text-slate-400 hover:text-slate-600 ml-2"><i className="fa-solid fa-xmark"></i></button>
+                        </div>
+                    )}
+
                     {/* === HEADER AZULINO TECH === */}
                     <header className="bg-white rounded-2xl shadow-sm px-6 py-5 flex items-center justify-between shrink-0 border border-slate-200">
                         <div className="flex items-center gap-5">
@@ -604,13 +636,13 @@ X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527
 
                     {/* === KPI CARDS TECH === */}
                     <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-4 shrink-0">
-                        <div className="bg-white border border-slate-200 rounded-2xl p-4 flex items-center gap-4 relative overflow-hidden shadow-sm hover:shadow-md transition">
-                            <div className="w-10 h-10 rounded-xl bg-brand-light text-brand flex items-center justify-center text-base border border-blue-100"><i className="fa-solid fa-award"></i></div>
+                        <div className={`bg-white border ${totalCreditos < MIN_CREDITOS ? 'border-amber-300' : 'border-slate-200'} rounded-2xl p-4 flex items-center gap-4 relative overflow-hidden shadow-sm hover:shadow-md transition`}>
+                            <div className={`w-10 h-10 rounded-xl ${totalCreditos < MIN_CREDITOS ? 'bg-amber-50 text-amber-500 border-amber-200' : 'bg-brand-light text-brand border-blue-100'} flex items-center justify-center text-base border`}><i className="fa-solid fa-award"></i></div>
                             <div className="flex-1">
-                                <p className="text-2xl font-black text-slate-800 leading-none">{totalCreditos} <span className="text-xs font-bold text-slate-400">/ {MAX_CREDITOS} máx.</span></p>
+                                <p className={`text-2xl font-black ${totalCreditos < MIN_CREDITOS ? 'text-amber-600' : 'text-slate-800'} leading-none`}>{totalCreditos} <span className="text-xs font-bold text-slate-400">/ {MAX_CREDITOS} máx.</span></p>
                                 <p className="text-[10px] text-slate-500 font-bold uppercase mt-1 tracking-wider">Créditos totales</p>
                             </div>
-                            <div className="absolute bottom-0 left-0 right-0 h-1.5 bg-slate-100 overflow-hidden"><div className="h-full bg-brand-accent rounded-r-full transition-all duration-500" style={{width: `${Math.min((totalCreditos/MAX_CREDITOS)*100, 100)}%`}}></div></div>
+                            <div className="absolute bottom-0 left-0 right-0 h-1.5 bg-slate-100 overflow-hidden"><div className={`h-full ${totalCreditos < MIN_CREDITOS ? 'bg-amber-400' : 'bg-brand-accent'} rounded-r-full transition-all duration-500`} style={{width: `${Math.min((totalCreditos/MAX_CREDITOS)*100, 100)}%`}}></div></div>
                         </div>
                         <div className="bg-white border border-slate-200 rounded-2xl p-4 flex items-center gap-4 shadow-sm hover:shadow-md transition">
                             <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-500 flex items-center justify-center text-base border border-indigo-100"><i className="fa-solid fa-book-open"></i></div>
@@ -891,16 +923,16 @@ X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527
                     {/* === PLANTILLA OCULTA PREMIUM PARA EXPORTACIÓN PERFECTA (PNG/PDF) === */}
                     <div ref={hiddenExportRef} className="absolute left-[-9999px] top-0 bg-white" style={{width: '1400px', display: 'none', padding: '50px', fontFamily: "'Inter', sans-serif", position: 'relative', overflow: 'hidden'}}>
                         
-                        {/* Marca de Agua de Fondo */}
+                        {/* Marca de Agua de Fondo Gigante */}
                         <div style={{position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%) rotate(-45deg)', fontSize: '130px', fontWeight: '900', color: 'rgba(59, 130, 246, 0.03)', whiteSpace: 'nowrap', zIndex: '0', pointerEvents: 'none', letterSpacing: '10px'}}>
                             CREADO POR SEBASTIAN
                         </div>
 
-                        {/* Membrete Oficial */}
+                        {/* Membrete Oficial Exportación */}
                         <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '5px solid #1e40af', paddingBottom: '25px', marginBottom: '25px', position: 'relative', zIndex: '1'}}>
                             <div style={{display: 'flex', alignItems: 'center', gap: '25px'}}>
-                                <div style={{width: '80px', height: '80px', backgroundColor: '#eff6ff', borderRadius: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid #bfdbfe'}}>
-                                    <i className="fa-solid fa-atom" style={{fontSize: '40px', color: '#3b82f6'}}></i>
+                                <div style={{width: '80px', height: '80px', backgroundColor: '#eff6ff', borderRadius: '20px', display: 'flex', alignItems: 'center', justifyItems: 'center', border: '2px solid #bfdbfe'}}>
+                                    <i className="fa-solid fa-atom" style={{fontSize: '40px', color: '#3b82f6', margin: 'auto'}}></i>
                                 </div>
                                 <div>
                                     <h1 style={{margin: '0 0 5px 0', fontSize: '32px', color: '#0f172a', fontWeight: '900', letterSpacing: '-0.5px'}}>CEET FIQ Centro de Estudios <span style={{color: '#1e40af'}}>María Estela Toledo</span></h1>
@@ -913,12 +945,12 @@ X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527
                             </div>
                         </div>
 
-                        {/* Detalle de Resumen */}
+                        {/* Detalle de Resumen Exportación */}
                         <div style={{display: 'flex', gap: '20px', marginBottom: '25px', position: 'relative', zIndex: '1'}}>
-                            <div style={{backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', padding: '12px 25px', borderRadius: '12px', fontWeight: '800', color: '#166534', fontSize: '16px', display: 'flex', alignItems: 'center', gap: '10px'}}>
+                            <div style={{backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', padding: '12px 25px', borderRadius: '12px', fontWeight: '800', color: '#1e40af', fontSize: '16px', display: 'flex', alignItems: 'center', gap: '10px'}}>
                                 <i className="fa-solid fa-award"></i> Total Créditos: {totalCreditos} / {MAX_CREDITOS}
                             </div>
-                            <div style={{backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', padding: '12px 25px', borderRadius: '12px', fontWeight: '800', color: '#1e40af', fontSize: '16px', display: 'flex', alignItems: 'center', gap: '10px'}}>
+                            <div style={{backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', padding: '12px 25px', borderRadius: '12px', fontWeight: '800', color: '#475569', fontSize: '16px', display: 'flex', alignItems: 'center', gap: '10px'}}>
                                 <i className="fa-solid fa-book-open"></i> Cursos Matriculados: {new Set(seccionesAgregadas.map(s=>s.cursoId)).size}
                             </div>
                         </div>
@@ -941,7 +973,8 @@ X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527
                                         </div>
                                     ))}
                                 </div>
-                                {/* Clases exportadas de alta fidelidad */}
+                                
+                                {/* Clases exportadas en alta fidelidad */}
                                 {seccionesAgregadas.map((seccion, sIdx) => {
                                     const colores = [
                                         {bg: '#eff6ff', br: '#3b82f6', txt: '#1e40af'},
@@ -961,14 +994,14 @@ X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527
                                         return (
                                             <div 
                                                 key={`exp-${sIdx}-${hIdx}`}
-                                                style={{ position: 'absolute', top: `${offsetTop}px`, height: `${duration}px`, width: `calc((100% - 70px) / 6 - 12px)`, left: `calc(70px + ((100% - 70px) / 6) * ${colIndex} + 6px)`, backgroundColor: c.bg, borderLeft: `6px solid ${c.br}`, borderRadius: '12px', padding: '12px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}
+                                                style={{ position: 'absolute', top: `${offsetTop}px`, height: `${duration}px`, width: `calc((100% - 70px) / 6 - 12px)`, left: `calc(70px + ((100% - 70px) / 6) * ${colIndex} + 6px)`, backgroundColor: c.bg, borderLeft: `6px solid ${c.br}`, borderRadius: '12px', padding: '12px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyItems: 'center', justifyContent: 'center', textAlign: 'center', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}
                                             >
                                                 <span style={{fontWeight: '900', color: '#0f172a', fontSize: '13px', marginBottom: '6px', textTransform: 'uppercase', lineHeight: '1.2'}}>{seccion.nombreCurso}</span>
                                                 <span style={{fontWeight: '800', color: c.txt, fontSize: '11px', marginBottom: '6px'}}>
                                                     {seccion.codigo} • Sec. {seccion.seccion}
                                                 </span>
                                                 <span style={{fontSize: '11px', fontWeight: '700', color: '#475569', marginBottom: '8px'}}>{horario.docente}</span>
-                                                <div style={{display: 'flex', gap: '8px', alignItems: 'center'}}>
+                                                <div style={{display: 'flex', gap: '8px', alignItems: 'center', justifyContent: 'center'}}>
                                                     <span style={{fontSize: '11px', fontWeight: '900', color: c.txt, backgroundColor: 'white', padding: '3px 8px', borderRadius: '6px', border: `1px solid ${c.br}40`}}>
                                                         {horario.aula} | {horario.tipo}
                                                     </span>
@@ -983,10 +1016,10 @@ X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527
                             </div>
                         </div>
                         
-                        {/* Footer Exportación */}
-                        <div style={{marginTop: '25px', textAlign: 'center', borderTop: '2px solid #e2e8f0', paddingTop: '15px'}}>
-                            <p style={{margin: '0', fontSize: '14px', color: '#3b82f6', fontWeight: '900', letterSpacing: '4px'}}>CREADO POR SEBASTIAN</p>
-                            <p style={{margin: '5px 0 0 0', fontSize: '12px', color: '#94a3b8', fontWeight: '600'}}>© 2026 UNAC - Integración Estudiantil. Todos los derechos reservados.</p>
+                        {/* Footer de Exportación (Sello de Autor) */}
+                        <div style={{marginTop: '30px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '2px solid #e2e8f0', paddingTop: '20px', position: 'relative', zIndex: '1'}}>
+                            <p style={{margin: '0', fontSize: '14px', color: '#94a3b8', fontWeight: '600'}}>© 2026 UNAC - Todos los derechos reservados.</p>
+                            <p style={{margin: '0', fontSize: '18px', color: '#3b82f6', fontWeight: '900', letterSpacing: '3px'}}>CREADO POR SEBASTIAN <i className="fa-solid fa-code" style={{marginLeft: '8px', color: '#60a5fa'}}></i></p>
                         </div>
 
                     </div>
