@@ -39,6 +39,7 @@
 
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+        /* CORRECCIÓN 1: Se quitó el "overflow: hidden" y "height: 100vh" forzado de aquí para que Tailwind controle el responsivo */
         body { font-family: 'Inter', sans-serif; background-color: #f0f4f8; margin: 0; padding: 0; }
         
         .scroll-clean::-webkit-scrollbar { width: 6px; height: 6px; }
@@ -71,6 +72,7 @@
         .creator-text { font-weight: 900; letter-spacing: 0.2em; color: #3b82f6; text-shadow: 0 0 10px rgba(59,130,246,0.4); font-size: 0.75rem; text-align: center; margin-bottom: 2px; z-index: 10; position: relative; text-transform: uppercase;}
         .copyright-text { color: #94a3b8; font-size: 0.65rem; text-align: center; letter-spacing: 0.05em; z-index: 10; position: relative;}
 
+        /* Modal Overlay FadeIn */
         @keyframes fadeInOverlay { from { opacity: 0; backdrop-filter: blur(0px); } to { opacity: 1; backdrop-filter: blur(4px); } }
         .modal-bg { animation: fadeInOverlay 0.2s ease-out forwards; }
     </style>
@@ -81,7 +83,7 @@
     <script type="text/babel">
         const { useState, useMemo, useRef, useEffect } = React;
 
-        // === DATOS DE LA TABLA (MANTENIDO IGUAL) ===
+        // === DATOS DE LA TABLA ===
         const rawTableData = `I	ESTADO, SOCIEDAD, CULTURA Y DESARROLLO HUMANO - IEGH06 PLAN 2026 RODRIGUEZ TARANCO OSCAR JUAN - 2425 01Q Lun	08:00 a 10:30 FIQ1A03 PRESENCIAL T 90 Completado CALLAO
 I	ESTADO, SOCIEDAD, CULTURA Y DESARROLLO HUMANO - IEGH06 PLAN 2026 RODRIGUEZ TARANCO OSCAR JUAN - 2425 02Q Mar	10:30 a 13:00 FIQ1A03 PRESENCIAL T 90 Completado CALLAO
 I	MATEMÁTICA BÁSICA - IEGM02 PLAN 2026 REYNA SEGURA ANA MARIA - 1212 01Q Mar	08:00 a 10:30 FIQ3A06 PRESENCIAL T 40 Completado CALLAO
@@ -301,7 +303,7 @@ X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527
 X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527 02Q Lun	18:50 a 21:20 FIQ2A04 PRESENCIAL T 80 Completado CALLAO
 X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527 02Q Jue	16:20 a 18:50 FIQ2A04 PRESENCIAL P 80 Completado CALLAO`;
 
-        // DICCIONARIO DE CRÉDITOS
+        // DICCIONARIO DE CRÉDITOS EXACTOS
         const creditosMap = {
             "ESTADO, SOCIEDAD, CULTURA Y DESARROLLO HUMANO": 3,
             "METODOLOGÍA DEL TRABAJO UNIVERSITARIO": 2,
@@ -373,20 +375,27 @@ X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527
             lines.forEach(line => {
                 const parts = line.split('\t');
                 if (parts.length < 3) return;
+
                 const ciclo = parts[0].trim();
                 const col2 = parts[1].trim(); 
                 const col3 = parts[2].trim(); 
+
                 const planMatch = col2.match(/ PLAN \d{4}\*? /);
                 if (!planMatch) return;
+                
                 const planStr = planMatch[0];
                 const prePlan = col2.split(planStr)[0].trim();
                 const postPlan = col2.split(planStr)[1].trim();
+
                 const codeMatch = prePlan.match(/-\s*([A-Z0-9]+)$/);
                 const codigo = codeMatch ? codeMatch[1] : "FIQ";
                 const cursoNombre = prePlan.replace(/-\s*[A-Z0-9]+$/, '').trim();
+                
                 const creditosReales = creditosMap[cursoNombre] || 4;
+
                 const postPlanWords = postPlan.split(' ');
                 const dia = postPlanWords.pop();
+                
                 let seccion = postPlanWords.pop();
                 let subSeccion = "";
                 if (seccion.includes('G)') || seccion.includes('G(')) {
@@ -394,13 +403,16 @@ X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527
                     seccion = postPlanWords.pop();
                     seccion = seccion + " " + subSeccion;
                 }
+
                 let docente = postPlanWords.join(' ');
                 docente = docente.replace(/\s*-\s*\d+$/, '').trim();
                 if(!docente) docente = "POR DESIGNAR PROFESOR";
+
                 const timeMatch = col3.match(/(\d{2}:\d{2})\s+a\s+(\d{2}:\d{2})/);
                 if (!timeMatch) return;
                 const inicio = timeMatch[1];
                 const fin = timeMatch[2];
+
                 const restCol3 = col3.substring(timeMatch[0].length).trim().split(' ');
                 let tipo = "T";
                 let cupos = "40";
@@ -409,19 +421,26 @@ X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527
                     tipo = restCol3[tipoIndex];
                     cupos = restCol3[tipoIndex + 1] || "40";
                 }
+                
                 let modalIndex = restCol3.findIndex(w => w === 'PRESENCIAL' || w === 'VIRTUAL');
                 let aula = modalIndex > 0 ? restCol3.slice(0, modalIndex).join(' ') : "AULA/LAB";
                 if (!aula) aula = "AULA/LAB";
+
                 if (!courseMap[cursoNombre]) {
                     courseMap[cursoNombre] = { id: cursoNombre, nombre: cursoNombre, codigo: codigo, ciclo: ciclo, creditos: creditosReales, seccionesBase: {} };
                 }
+
                 const baseSeccion = seccion.split(' ')[0];
+                
                 if (!courseMap[cursoNombre].seccionesBase[baseSeccion]) {
                     courseMap[cursoNombre].seccionesBase[baseSeccion] = {
-                        id: `${cursoNombre}_${baseSeccion}`, seccion: baseSeccion, tp: [], labs: {}
+                        id: `${cursoNombre}_${baseSeccion}`, seccion: baseSeccion, 
+                        tp: [], labs: {}
                     };
                 }
+
                 const claseObj = { dia, inicio, fin, tipo, aula, docente, cupos, seccionOriginal: seccion };
+
                 if (tipo === 'L' || seccion.includes('G')) {
                     if (!courseMap[cursoNombre].seccionesBase[baseSeccion].labs[seccion]) {
                         courseMap[cursoNombre].seccionesBase[baseSeccion].labs[seccion] = [];
@@ -431,13 +450,14 @@ X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527
                     courseMap[cursoNombre].seccionesBase[baseSeccion].tp.push(claseObj);
                 }
             });
+
             return Object.values(courseMap);
         };
 
         const dbCursos = parseData();
         const borderColors = ['border-[#3b82f6]', 'border-[#0ea5e9]', 'border-[#6366f1]', 'border-[#8b5cf6]', 'border-[#2dd4bf]'];
 
-        // === COMPONENTES MODAL (MANTENIDO IGUAL) ===
+        // === MODAL DE CRUCE ===
         const ConflictModal = ({ conflictData, onClose, onForceReplace, onSelectSuggestion }) => {
             if (!conflictData) return null;
             const { curso, seccion, conflict, suggestions } = conflictData;
@@ -447,64 +467,88 @@ X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527
                         <button onClick={onClose} className="absolute top-5 right-5 w-8 h-8 rounded-full bg-red-100 text-red-500 hover:bg-red-500 hover:text-white flex items-center justify-center transition-colors">
                             <i className="fa-solid fa-xmark"></i>
                         </button>
+
                         <div className="p-8 pb-6 flex flex-col items-center text-center">
                             <div className="w-16 h-16 bg-red-100 text-red-500 rounded-2xl flex items-center justify-center text-3xl mb-4 border-2 border-red-50">
                                 <i className="fa-solid fa-triangle-exclamation"></i>
                             </div>
+                            
                             <h3 className="text-xl font-black text-slate-800 mb-2">¡Cruce de Horario Detectado!</h3>
                             <p className="text-sm text-slate-500 font-medium mb-6">La sección <strong className="text-red-500">{seccion}</strong> del curso <strong className="text-slate-700">{curso.nombre}</strong> genera un cruce.</p>
+
                             <div className="w-full bg-red-50 border border-red-200 rounded-xl p-4 text-left mb-6">
                                 <p className="text-xs text-red-800 font-medium leading-relaxed">
                                     <strong className="text-red-900">Detalle del cruce:</strong> El día <strong className="text-red-900">{conflict.dia}</strong> a las <strong className="text-red-900">{conflict.inicio} - {conflict.fin}</strong> se cruza a la misma hora con tu clase inscrita de <strong className="text-red-900">{conflict.oldCourseName}</strong>.
                                 </p>
                             </div>
+
                             <div className="w-full bg-[#f0fdf4] border border-[#bbf7d0] rounded-xl p-4 text-left">
                                 <h4 className="text-xs font-bold text-[#166534] flex items-center gap-2 mb-3">
                                     <i className="fa-solid fa-wand-magic-sparkles"></i> Sugerencia Inteligente de Secciones Libres
                                 </h4>
+                                
                                 {suggestions.length > 0 ? (
-                                    <div className="space-y-2 max-h-32 overflow-y-auto scroll-clean pr-1">
-                                        {suggestions.map(sug => (
-                                            <div key={sug.id} className="bg-white border border-[#dcfce7] rounded-lg p-3 flex justify-between items-center shadow-sm">
-                                                <div>
-                                                    <div className="font-bold text-[#166534] text-xs">Sección {sug.seccion}</div>
-                                                    <div className="text-[9px] text-[#15803d] uppercase mt-0.5 truncate w-[180px]">{sug.docente}</div>
+                                    <>
+                                        <p className="text-[10px] text-[#15803d] mb-3">Las siguientes secciones de este curso están <strong>libres y no se cruzan</strong> con tu horario actual:</p>
+                                        <div className="space-y-2 max-h-32 overflow-y-auto scroll-clean pr-1">
+                                            {suggestions.map(sug => (
+                                                <div key={sug.id} className="bg-white border border-[#dcfce7] rounded-lg p-3 flex justify-between items-center shadow-sm">
+                                                    <div>
+                                                        <div className="font-bold text-[#166534] text-xs">Sección {sug.seccion}</div>
+                                                        <div className="text-[9px] text-[#15803d] uppercase mt-0.5 truncate w-[180px]">{sug.docente}</div>
+                                                    </div>
+                                                    <button onClick={() => onSelectSuggestion(sug)} className="bg-[#10b981] hover:bg-[#059669] text-white px-3 py-1.5 rounded-md text-[10px] font-bold transition flex items-center gap-1.5 shadow-sm">
+                                                        <i className="fa-regular fa-circle-check"></i> Seleccionar
+                                                    </button>
                                                 </div>
-                                                <button onClick={() => onSelectSuggestion(sug)} className="bg-[#10b981] hover:bg-[#059669] text-white px-3 py-1.5 rounded-md text-[10px] font-bold transition flex items-center gap-1.5 shadow-sm">
-                                                    <i className="fa-regular fa-circle-check"></i> Seleccionar
-                                                </button>
-                                            </div>
-                                        ))}
-                                    </div>
+                                            ))}
+                                        </div>
+                                    </>
                                 ) : (
-                                    <p className="text-[10px] text-[#15803d]">No hay otras secciones disponibles sin cruces.</p>
+                                    <p className="text-[10px] text-[#15803d] bg-white p-3 rounded-lg border border-[#dcfce7]">Lo sentimos, no hay otras secciones disponibles para este curso que encajen en tu horario actual sin generar cruces.</p>
                                 )}
                             </div>
                         </div>
+
                         <div className="px-8 py-5 border-t border-slate-100 bg-slate-50 flex gap-3">
-                            <button onClick={onClose} className="flex-1 bg-white border border-slate-200 text-slate-600 hover:bg-slate-100 py-2.5 rounded-xl text-xs font-bold transition">Cancelar</button>
-                            <button onClick={onForceReplace} className="flex-1 bg-red-600 hover:bg-red-700 text-white py-2.5 rounded-xl text-xs font-bold transition shadow-sm">Reemplazar Curso</button>
+                            <button onClick={onClose} className="flex-1 bg-white border border-slate-200 text-slate-600 hover:bg-slate-100 py-2.5 rounded-xl text-xs font-bold transition">
+                                Cancelar
+                            </button>
+                            <button onClick={onForceReplace} className="flex-1 bg-red-600 hover:bg-red-700 text-white py-2.5 rounded-xl text-xs font-bold transition shadow-sm">
+                                Reemplazar Curso
+                            </button>
                         </div>
                     </div>
                 </div>
             );
         };
 
+        // === MODAL DE VACIAR HORARIO ===
         const ClearModal = ({ isOpen, onClose, onConfirm }) => {
             if (!isOpen) return null;
             return (
                 <div className="fixed inset-0 bg-slate-900/70 z-[120] flex items-center justify-center p-4 modal-bg">
-                    <div className="bg-white rounded-3xl w-full max-sm overflow-hidden shadow-2xl relative">
+                    <div className="bg-white rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl relative">
+                        <button onClick={onClose} className="absolute top-5 right-5 w-8 h-8 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 flex items-center justify-center transition-colors">
+                            <i className="fa-solid fa-xmark"></i>
+                        </button>
+
                         <div className="p-8 pb-6 flex flex-col items-center text-center">
                             <div className="w-16 h-16 bg-red-100 text-red-500 rounded-2xl flex items-center justify-center text-3xl mb-4 border-2 border-red-50">
                                 <i className="fa-regular fa-trash-can"></i>
                             </div>
+                            
                             <h3 className="text-xl font-black text-slate-800 mb-2">Vaciar Horario</h3>
-                            <p className="text-sm text-slate-500 font-medium">¿Estás seguro de que deseas eliminar todos los cursos de tu horario?</p>
+                            <p className="text-sm text-slate-500 font-medium">¿Estás seguro de que deseas eliminar todos los cursos de tu horario? Esta acción se puede deshacer.</p>
                         </div>
+
                         <div className="px-8 py-5 border-t border-slate-100 bg-slate-50 flex gap-3">
-                            <button onClick={onClose} className="flex-1 bg-white border border-slate-200 text-slate-600 hover:bg-slate-100 py-2.5 rounded-xl text-xs font-bold transition">Cancelar</button>
-                            <button onClick={onConfirm} className="flex-1 bg-red-600 hover:bg-red-700 text-white py-2.5 rounded-xl text-xs font-bold transition shadow-sm">Sí, vaciar</button>
+                            <button onClick={onClose} className="flex-1 bg-white border border-slate-200 text-slate-600 hover:bg-slate-100 py-2.5 rounded-xl text-xs font-bold transition">
+                                Cancelar
+                            </button>
+                            <button onClick={onConfirm} className="flex-1 bg-red-600 hover:bg-red-700 text-white py-2.5 rounded-xl text-xs font-bold transition shadow-sm">
+                                Sí, vaciar
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -518,8 +562,10 @@ X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527
             const [busqueda, setBusqueda] = useState('');
             const [dropdownOpen, setDropdownOpen] = useState(false);
             const [toast, setToast] = useState({ visible: false, message: '', type: 'success' });
+            
             const [conflictModalData, setConflictModalData] = useState(null);
             const [isClearModalOpen, setIsClearModalOpen] = useState(false);
+            
             const calendarRef = useRef(null);
             const hiddenExportRef = useRef(null);
 
@@ -532,7 +578,9 @@ X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527
                 return (h * 60) + m;
             };
 
-            const formatHourLine = (num) => `${String(num).padStart(2, '0')}:00`;
+            const formatHourLine = (num) => {
+                return `${String(num).padStart(2, '0')}:00`;
+            };
 
             const showToast = (msg, type='success') => {
                 setToast({ visible: true, message: msg, type });
@@ -540,23 +588,37 @@ X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527
             };
 
             const { totalCreditos, crucesCount, horasSemanales, horasLibres } = useMemo(() => {
-                let creditos = 0; let cruces = 0; let minsClase = 0; let huecosMins = 0;
-                const uniqueCursos = new Set(); const bloques = []; const diasMap = {};
+                let creditos = 0;
+                let cruces = 0;
+                let minsClase = 0;
+                let huecosMins = 0;
+                const uniqueCursos = new Set();
+                const bloques = [];
+                const diasMap = {};
+
                 seccionesAgregadas.forEach(sec => {
-                    if (!uniqueCursos.has(sec.cursoId)) { creditos += (sec.creditos || 4); uniqueCursos.add(sec.cursoId); }
+                    if (!uniqueCursos.has(sec.cursoId)) { 
+                        creditos += (sec.creditos || 4); 
+                        uniqueCursos.add(sec.cursoId); 
+                    }
                     sec.horarios.forEach(h => {
-                        const start = timeToMins(h.inicio); const end = timeToMins(h.fin);
-                        minsClase += (end - start); bloques.push({ dia: h.dia, inicio: start, fin: end });
+                        const start = timeToMins(h.inicio);
+                        const end = timeToMins(h.fin);
+                        minsClase += (end - start);
+                        bloques.push({ dia: h.dia, inicio: start, fin: end });
+                        
                         if(!diasMap[h.dia]) diasMap[h.dia] = [];
                         diasMap[h.dia].push({ start, end });
                     });
                 });
+
                 for(let i=0; i < bloques.length; i++){
                     for(let j=i+1; j < bloques.length; j++){
                         const b1 = bloques[i], b2 = bloques[j];
                         if(b1.dia === b2.dia && b1.inicio < b2.fin && b1.fin > b2.inicio) cruces++;
                     }
                 }
+
                 Object.values(diasMap).forEach(clases => {
                     clases.sort((a,b) => a.start - b.start);
                     for(let i=0; i<clases.length-1; i++){
@@ -564,13 +626,15 @@ X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527
                         if (gap > 0) huecosMins += gap;
                     }
                 });
+
                 return { totalCreditos: creditos, crucesCount: cruces, horasSemanales: Math.round(minsClase / 60), horasLibres: Math.round(huecosMins / 60) };
             }, [seccionesAgregadas]);
 
             const cursosFiltrados = dbCursos.filter(c => {
                 const matchCiclo = filtroCiclo === 'Todos' || c.ciclo === filtroCiclo;
                 const searchTxt = busqueda.toLowerCase();
-                return matchCiclo && (c.nombre.toLowerCase().includes(searchTxt) || c.codigo.toLowerCase().includes(searchTxt));
+                const matchBus = c.nombre.toLowerCase().includes(searchTxt) || c.codigo.toLowerCase().includes(searchTxt);
+                return matchCiclo && matchBus;
             });
 
             const cursosPorCiclo = useMemo(() => {
@@ -583,12 +647,22 @@ X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527
 
             const checkConflict = (newHorarios, currentSchedule) => {
                 for (let nh of newHorarios) {
-                    const nStart = timeToMins(nh.inicio); const nEnd = timeToMins(nh.fin);
+                    const nStart = timeToMins(nh.inicio);
+                    const nEnd = timeToMins(nh.fin);
                     for (let extSec of currentSchedule) {
                         for (let eh of extSec.horarios) {
                             if (nh.dia === eh.dia) {
-                                const eStart = timeToMins(eh.inicio); const eEnd = timeToMins(eh.fin);
-                                if (nStart < eEnd && nEnd > eStart) return { dia: nh.dia, inicio: nh.inicio, fin: nh.fin, oldCourseName: extSec.nombreCurso, oldCourseId: extSec.id };
+                                const eStart = timeToMins(eh.inicio);
+                                const eEnd = timeToMins(eh.fin);
+                                if (nStart < eEnd && nEnd > eStart) {
+                                    return {
+                                        dia: nh.dia,
+                                        inicio: nh.inicio,
+                                        fin: nh.fin,
+                                        oldCourseName: extSec.nombreCurso,
+                                        oldCourseId: extSec.id
+                                    };
+                                }
                             }
                         }
                     }
@@ -611,125 +685,190 @@ X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527
 
             const toggleSeccion = (curso, itemID, nombreSeccion, horariosArray, itemType) => {
                 const isAdded = seccionesAgregadas.some(s => s.id === itemID);
+                
                 if (isAdded) {
                     setHistorial(prev => [...prev, seccionesAgregadas]); 
                     setSeccionesAgregadas(seccionesAgregadas.filter(s => s.id !== itemID));
                 } else {
                     const tempSchedule = seccionesAgregadas.filter(s => !(s.cursoId === curso.id && s.itemType === itemType));
                     const conflict = checkConflict(horariosArray, tempSchedule);
+                    
                     if (conflict) {
                         const suggestions = getSuggestions(curso, tempSchedule, itemID);
                         setConflictModalData({ curso, itemID, seccion: nombreSeccion, horariosArray, itemType, conflict, suggestions });
-                    } else { executeAddCourse(curso, itemID, nombreSeccion, horariosArray, itemType); }
+                    } else {
+                        executeAddCourse(curso, itemID, nombreSeccion, horariosArray, itemType);
+                    }
                 }
             };
 
             const executeAddCourse = (curso, itemID, nombreSeccion, horariosArray, itemType, courseToRemoveId = null) => {
                 setHistorial(prev => [...prev, seccionesAgregadas]); 
                 let newSchedule = [...seccionesAgregadas];
-                if (courseToRemoveId) newSchedule = newSchedule.filter(s => s.id !== courseToRemoveId);
+                
+                if (courseToRemoveId) {
+                    newSchedule = newSchedule.filter(s => s.id !== courseToRemoveId);
+                }
+
                 newSchedule = newSchedule.filter(s => !(s.cursoId === curso.id && s.itemType === itemType));
-                newSchedule.push({ id: itemID, cursoId: curso.id, nombreCurso: curso.nombre, seccion: nombreSeccion, horarios: horariosArray, itemType: itemType, creditos: curso.creditos, codigo: curso.codigo });
+                
+                newSchedule.push({ 
+                    id: itemID, cursoId: curso.id, nombreCurso: curso.nombre, 
+                    seccion: nombreSeccion, horarios: horariosArray, itemType: itemType, creditos: curso.creditos, codigo: curso.codigo
+                });
+                
                 setSeccionesAgregadas(newSchedule);
                 setConflictModalData(null); 
             };
 
             const handleForceReplace = () => {
                 executeAddCourse(conflictModalData.curso, conflictModalData.itemID, conflictModalData.seccion, conflictModalData.horariosArray, conflictModalData.itemType, conflictModalData.conflict.oldCourseId);
-                showToast("Curso reemplazado.", 'success');
+                showToast("Curso reemplazado forzosamente.", 'success');
             };
 
             const handleSelectSuggestion = (sug) => {
                 executeAddCourse(conflictModalData.curso, sug.id, sug.seccion, sug.horarios, sug.itemType);
-                showToast(`Sección ${sug.seccion} agregada.`, 'success');
+                showToast(`Sección ${sug.seccion} agregada sin cruces.`, 'success');
+            };
+
+            // === LÓGICA VACIAR HORARIO ===
+            const triggerLimpiarHorario = () => {
+                if(seccionesAgregadas.length > 0) {
+                    setIsClearModalOpen(true);
+                } else {
+                    showToast("Tu horario ya está vacío.", 'error');
+                }
             };
 
             const confirmLimpiarHorario = () => {
                 setHistorial(prev => [...prev, seccionesAgregadas]);
                 setSeccionesAgregadas([]);
                 setIsClearModalOpen(false);
-                showToast("Horario vaciado.", 'success');
+                showToast("Horario vaciado correctamente.", 'success');
             };
 
             const undoAction = () => {
                 if (historial.length > 0) {
-                    setSeccionesAgregadas(historial[historial.length - 1]);
+                    const prevState = historial[historial.length - 1];
+                    setSeccionesAgregadas(prevState);
                     setHistorial(historial.slice(0, -1));
                 }
             };
 
             const validateExport = () => {
-                if (totalCreditos < MIN_CREDITOS) { showToast(`Mínimo ${MIN_CREDITOS} créditos.`, 'error'); return false; }
-                if (crucesCount > 0) { showToast(`Tienes ${crucesCount} cruce(s).`, 'error'); return false; }
+                if (totalCreditos < MIN_CREDITOS) {
+                    showToast(`Error: Necesitas un mínimo de ${MIN_CREDITOS} créditos para exportar (Tienes ${totalCreditos}).`, 'error');
+                    return false;
+                }
+                if (crucesCount > 0) {
+                    showToast(`Error: Tienes ${crucesCount} cruce(s) de horario. Resuélvelos antes de exportar.`, 'error');
+                    return false;
+                }
                 return true;
             };
 
-            // === CORRECCIÓN DE EXPORTACIÓN (PNG Y PDF) ===
-            const captureCanvas = async () => {
+            // --- CORRECCIÓN LÓGICA EXPORTAR ---
+            const exportarPNG = () => {
+                setDropdownOpen(false);
+                if (!validateExport()) return;
+                
+                showToast("Generando Imagen de alta calidad...", 'success');
                 const target = hiddenExportRef.current;
+                
+                // Forzamos posicionamiento para que html2canvas no se pierda
                 const originalStyle = target.style.cssText;
-                
-                // Forzar visibilidad temporal para captura perfecta
-                target.style.position = 'fixed';
-                target.style.top = '0';
-                target.style.left = '0';
-                target.style.zIndex = '9999';
-                target.style.visibility = 'visible';
-                
-                const canvas = await html2canvas(target, { 
-                    scale: 2, 
+                target.style.left = "0";
+                target.style.top = "0";
+                target.style.position = "fixed";
+                target.style.visibility = "visible";
+
+                html2canvas(target, { 
+                    scale: 3, // Mayor escala evita desfaces de texto
                     useCORS: true,
-                    allowTaint: true,
                     backgroundColor: '#ffffff',
                     width: 1400,
-                    height: target.offsetHeight,
-                    windowWidth: 1400
+                    height: target.scrollHeight,
+                }).then(canvas => {
+                    target.style.cssText = originalStyle;
+                    const link = document.createElement('a');
+                    link.download = 'Horario_CEET_FIQ.png';
+                    link.href = canvas.toDataURL('image/png', 1.0);
+                    link.click();
                 });
-                
-                target.style.cssText = originalStyle;
-                return canvas;
             };
 
-            const exportarPNG = async () => {
+            const exportarPDF = () => {
                 setDropdownOpen(false);
                 if (!validateExport()) return;
-                showToast("Generando Imagen...", 'success');
-                const canvas = await captureCanvas();
-                const link = document.createElement('a');
-                link.download = 'Horario_CEET_FIQ.png';
-                link.href = canvas.toDataURL('image/png', 1.0);
-                link.click();
-            };
+                
+                showToast("Generando PDF sin recortes...", 'success');
+                const target = hiddenExportRef.current;
+                
+                const originalStyle = target.style.cssText;
+                target.style.left = "0";
+                target.style.top = "0";
+                target.style.position = "fixed";
+                target.style.visibility = "visible";
 
-            const exportarPDF = async () => {
-                setDropdownOpen(false);
-                if (!validateExport()) return;
-                showToast("Generando PDF...", 'success');
-                const canvas = await captureCanvas();
-                const imgData = canvas.toDataURL('image/png', 1.0);
-                const { jsPDF } = window.jspdf;
-                
-                // A4 Horizontal: 297mm x 210mm
-                const pdf = new jsPDF('l', 'mm', 'a4');
-                const pdfWidth = pdf.internal.pageSize.getWidth();
-                const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-                
-                pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight, undefined, 'FAST');
-                pdf.save('Horario_CEET_FIQ.pdf');
+                html2canvas(target, { 
+                    scale: 2, 
+                    useCORS: true,
+                    backgroundColor: '#ffffff',
+                    width: 1400,
+                    height: target.scrollHeight,
+                }).then(canvas => {
+                    target.style.cssText = originalStyle;
+                    const imgData = canvas.toDataURL('image/png');
+                    const { jsPDF } = window.jspdf;
+                    
+                    // A4 horizontal: 297mm x 210mm
+                    const pdf = new jsPDF('l', 'mm', 'a4');
+                    const pageWidth = pdf.internal.pageSize.getWidth();
+                    const pageHeight = pdf.internal.pageSize.getHeight();
+                    
+                    // Ajustar imagen al ancho del PDF
+                    const imgWidth = pageWidth;
+                    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+                    pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+                    pdf.save('Horario_CEET_FIQ.pdf');
+                });
             };
 
             const exportarWord = () => {
                 setDropdownOpen(false);
                 if (!validateExport()) return;
-                let tableHtml = "<table border='1' style='width:100%; border-collapse: collapse; font-family: Arial; font-size: 11px;'>";
+
+                let tableHtml = "<table border='1' style='width:100%; border-collapse: collapse; font-family: Arial, sans-serif; font-size: 11px;'>";
                 tableHtml += "<tr style='background-color:#1e40af; color:white;'><th>CURSO</th><th>SECCIÓN</th><th>DÍA</th><th>HORA</th><th>AULA</th><th>DOCENTE</th></tr>";
+                
                 seccionesAgregadas.forEach(sec => {
                     sec.horarios.forEach(h => {
-                        tableHtml += `<tr><td><b>${sec.nombreCurso}</b></td><td>${h.seccionOriginal}</td><td>${h.dia}</td><td>${h.inicio} - ${h.fin}</td><td>${h.aula}</td><td>${h.docente}</td></tr>`;
+                        tableHtml += `<tr>
+                            <td><b>${sec.nombreCurso}</b></td>
+                            <td>${h.seccionOriginal}</td>
+                            <td>${h.dia}</td>
+                            <td>${h.inicio} - ${h.fin}</td>
+                            <td>${h.aula}</td>
+                            <td>${h.docente}</td>
+                        </tr>`;
                     });
                 });
                 tableHtml += "</table>";
-                const docHtml = `<html><head><meta charset='utf-8'></head><body><h2 style="color:#1e40af; text-align:center;">CEET FIQ</h2>${tableHtml}</body></html>`;
+
+                const docHtml = `
+                    <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+                    <head><meta charset='utf-8'><title>Horario CEET FIQ</title></head>
+                    <body>
+                        <h2 style="color:#1e40af; text-align:center; font-family:Arial; margin-bottom:5px;">CEET FIQ Centro de Estudios María Estela Toledo</h2>
+                        <p style="color:#64748b; text-align:center; font-family:Arial; font-size:12px; margin-top:0;"><i>"Crecemos juntos, aprendemos mejor"</i></p>
+                        <h3 style="color:#334155; font-family:Arial;">Programación Horaria Oficial 2026-B</h3>
+                        ${tableHtml}
+                        <p style="color:#94a3b8; text-align:right; font-family:Arial; font-size:10px; margin-top:20px;">Creado por Sebastian</p>
+                    </body>
+                    </html>
+                `;
+
                 const blob = new Blob(['\ufeff', docHtml], { type: 'application/msword' });
                 const url = URL.createObjectURL(blob);
                 const link = document.createElement('a');
@@ -749,8 +888,10 @@ X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527
                     <ClearModal isOpen={isClearModalOpen} onClose={() => setIsClearModalOpen(false)} onConfirm={confirmLimpiarHorario} />
 
                     {toast.visible && (
-                        <div className={`fixed bottom-6 right-6 px-5 py-3 rounded-xl shadow-lg flex items-center gap-4 z-[110] animate-[popIn_0.3s_ease-out] border-2 ${toast.type === 'error' ? 'bg-white border-red-500' : 'bg-white border-emerald-500'}`}>
+                        <div className={`fixed bottom-6 right-6 px-5 py-3 rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.15)] flex items-center gap-4 z-[110] animate-[popIn_0.3s_ease-out] border-2 ${toast.type === 'error' ? 'bg-white border-red-500' : 'bg-white border-emerald-500'}`}>
+                            <i className={`text-2xl ${toast.type === 'error' ? 'fa-solid fa-circle-exclamation text-red-500' : 'fa-solid fa-circle-check text-emerald-500'}`}></i>
                             <div className={`text-sm font-bold ${toast.type === 'error' ? 'text-red-600' : 'text-slate-700'}`}>{toast.message}</div>
+                            <button onClick={() => setToast({visible: false})} className="text-slate-400 hover:text-slate-600 ml-2"><i className="fa-solid fa-xmark"></i></button>
                         </div>
                     )}
 
@@ -763,84 +904,164 @@ X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527
                                 <h1 className="text-xl md:text-2xl font-black text-slate-800 tracking-tight leading-none mb-1">CEET FIQ Centro de Estudios <span className="text-brand">María Estela Toledo</span></h1>
                                 <div className="flex items-center gap-3">
                                     <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Planificador 2026-B</span>
-                                    <span className="bg-brand-light text-brand border border-blue-200 text-[10px] font-bold px-2 py-0.5 rounded-full hidden sm:inline-block">"Crecemos juntos, aprendemos mejor"</span>
+                                    <span className="bg-brand-light text-brand border border-blue-200 text-[10px] font-bold px-2 py-0.5 rounded-full hidden sm:inline-block shadow-sm">"Crecemos juntos, aprendemos mejor"</span>
                                 </div>
                             </div>
                         </div>
+                        <button className="w-10 h-10 rounded-xl border border-slate-200 text-slate-400 hover:text-brand-accent hover:border-blue-200 hover:bg-blue-50 flex items-center justify-center transition shadow-sm">
+                            <i className="fa-solid fa-shield-halved"></i>
+                        </button>
                     </header>
 
                     <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-4 shrink-0">
-                        <div className="bg-white border border-slate-200 rounded-2xl p-4 flex items-center gap-4 shadow-sm">
-                            <div className="w-10 h-10 rounded-xl bg-brand-light text-brand flex items-center justify-center text-base border border-blue-100"><i className="fa-solid fa-award"></i></div>
-                            <div><p className="text-2xl font-black text-slate-800 leading-none">{totalCreditos}</p><p className="text-[10px] text-slate-500 font-bold uppercase mt-1">Créditos</p></div>
+                        <div className={`bg-white border ${totalCreditos < MIN_CREDITOS ? 'border-amber-300' : 'border-slate-200'} rounded-2xl p-4 flex items-center gap-4 relative overflow-hidden shadow-sm hover:shadow-md transition`}>
+                            <div className={`w-10 h-10 rounded-xl ${totalCreditos < MIN_CREDITOS ? 'bg-amber-50 text-amber-500 border-amber-200' : 'bg-brand-light text-brand border-blue-100'} flex items-center justify-center text-base border`}><i className="fa-solid fa-award"></i></div>
+                            <div className="flex-1">
+                                <p className={`text-2xl font-black ${totalCreditos < MIN_CREDITOS ? 'text-amber-600' : 'text-slate-800'} leading-none`}>{totalCreditos} <span className="text-xs font-bold text-slate-400">/ {MAX_CREDITOS} máx.</span></p>
+                                <p className="text-[10px] text-slate-500 font-bold uppercase mt-1 tracking-wider">Créditos totales</p>
+                            </div>
+                            <div className="absolute bottom-0 left-0 right-0 h-1.5 bg-slate-100 overflow-hidden"><div className={`h-full ${totalCreditos < MIN_CREDITOS ? 'bg-amber-400' : 'bg-brand-accent'} rounded-r-full transition-all duration-500`} style={{width: `${Math.min((totalCreditos/MAX_CREDITOS)*100, 100)}%`}}></div></div>
                         </div>
-                        <div className="bg-white border border-slate-200 rounded-2xl p-4 flex items-center gap-4 shadow-sm">
+                        <div className="bg-white border border-slate-200 rounded-2xl p-4 flex items-center gap-4 shadow-sm hover:shadow-md transition">
                             <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-500 flex items-center justify-center text-base border border-indigo-100"><i className="fa-solid fa-book-open"></i></div>
-                            <div><p className="text-2xl font-black text-slate-800 leading-none">{new Set(seccionesAgregadas.map(s=>s.cursoId)).size}</p><p className="text-[10px] text-slate-500 font-bold uppercase mt-1">Cursos</p></div>
+                            <div>
+                                <p className="text-2xl font-black text-slate-800 leading-none">{new Set(seccionesAgregadas.map(s=>s.cursoId)).size}</p>
+                                <p className="text-[10px] text-slate-500 font-bold uppercase mt-1 tracking-wider">Cursos activos</p>
+                            </div>
                         </div>
-                        <div className="bg-white border border-slate-200 rounded-2xl p-4 flex items-center gap-4 shadow-sm">
+                        <div className="bg-white border border-slate-200 rounded-2xl p-4 flex items-center gap-4 shadow-sm hover:shadow-md transition">
                             <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-base border ${crucesCount > 0 ? 'bg-red-50 text-red-500 border-red-100' : 'bg-emerald-50 text-emerald-500 border-emerald-100'}`}><i className="fa-solid fa-code-compare"></i></div>
-                            <div><p className={`text-2xl font-black leading-none ${crucesCount > 0 ? 'text-red-600' : 'text-slate-800'}`}>{crucesCount}</p><p className="text-[10px] text-slate-500 font-bold uppercase mt-1">Cruces</p></div>
+                            <div>
+                                <p className={`text-2xl font-black leading-none ${crucesCount > 0 ? 'text-red-600' : 'text-slate-800'}`}>{crucesCount}</p>
+                                <p className="text-[10px] text-slate-500 font-bold uppercase mt-1 tracking-wider">Cruces de horario</p>
+                            </div>
                         </div>
-                        <div className="bg-white border border-slate-200 rounded-2xl p-4 flex items-center gap-4 shadow-sm">
+                        <div className="bg-white border border-slate-200 rounded-2xl p-4 flex items-center gap-4 shadow-sm hover:shadow-md transition">
                             <div className="w-10 h-10 rounded-xl bg-cyan-50 text-cyan-500 flex items-center justify-center text-base border border-cyan-100"><i className="fa-regular fa-clock"></i></div>
-                            <div><p className="text-2xl font-black text-slate-800 leading-none">{horasSemanales}h</p><p className="text-[10px] text-slate-500 font-bold uppercase mt-1">Semanales</p></div>
+                            <div>
+                                <p className="text-2xl font-black text-slate-800 leading-none">{horasSemanales}h</p>
+                                <p className="text-[10px] text-slate-500 font-bold uppercase mt-1 tracking-wider">Horas de clase</p>
+                            </div>
+                        </div>
+                        <div className="bg-white border border-slate-200 rounded-2xl p-4 flex items-center gap-4 col-span-2 md:col-span-4 lg:col-span-1 shadow-sm hover:shadow-md transition">
+                            <div className="w-10 h-10 rounded-xl bg-violet-50 text-violet-500 flex items-center justify-center text-base border border-violet-100"><i className="fa-solid fa-mug-hot"></i></div>
+                            <div>
+                                <p className="text-2xl font-black text-slate-800 leading-none">{horasLibres}h</p>
+                                <p className="text-[10px] text-slate-500 font-bold uppercase mt-1 tracking-wider">Tiempo libre</p>
+                            </div>
                         </div>
                     </div>
 
                     <div className="flex flex-col lg:flex-row lg:flex-1 lg:min-h-0 gap-3 md:gap-4 pb-2">
+                        
                         <div className="w-full lg:w-[350px] shrink-0 bg-white rounded-2xl shadow-sm border border-slate-200 flex flex-col h-[500px] lg:h-auto overflow-hidden">
                             <div className="p-5 border-b border-slate-100 bg-slate-50/50">
-                                <h2 className="font-black text-base text-slate-800 mb-4 flex items-center gap-2"><i className="fa-solid fa-layer-group text-brand-accent"></i> Catálogo</h2>
+                                <h2 className="font-black text-base text-slate-800 mb-4 flex items-center gap-2"><i className="fa-solid fa-layer-group text-brand-accent"></i> Catálogo de Cursos</h2>
                                 <div className="space-y-3">
-                                    <input type="text" placeholder="Buscar curso..." className="w-full pl-4 pr-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-brand-accent transition-all" value={busqueda} onChange={(e) => setBusqueda(e.target.value)} />
-                                    <select className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-600" value={filtroCiclo} onChange={(e) => setFiltroCiclo(e.target.value)}>
+                                    <div className="relative">
+                                        <i className="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-slate-400 text-sm"></i>
+                                        <input type="text" placeholder="Buscar curso, código o docente..." className="w-full pl-10 pr-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:border-brand-accent focus:ring-1 focus:ring-brand-accent transition-all shadow-sm" value={busqueda} onChange={(e) => setBusqueda(e.target.value)} />
+                                    </div>
+                                    <select className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-600 focus:outline-none focus:border-brand-accent focus:ring-1 focus:ring-brand-accent transition-all cursor-pointer shadow-sm" value={filtroCiclo} onChange={(e) => setFiltroCiclo(e.target.value)}>
                                         <option value="Todos">Todos los ciclos</option>
-                                        <option value="I">I</option><option value="II">II</option><option value="III">III</option><option value="IV">IV</option><option value="V">V</option><option value="VI">VI</option><option value="VII">VII</option><option value="VIII">VIII</option><option value="IX">IX</option><option value="X">X</option>
+                                        <option value="I">CICLO I</option><option value="II">CICLO II</option><option value="III">CICLO III</option><option value="IV">CICLO IV</option><option value="V">CICLO V</option><option value="VI">CICLO VI</option><option value="VII">CICLO VII</option><option value="VIII">CICLO VIII</option><option value="IX">CICLO IX</option><option value="X">CICLO X</option>
                                     </select>
                                 </div>
                             </div>
+                            
                             <div className="flex-1 overflow-y-auto scroll-clean p-4 bg-[#f8fafc]">
                                 {Object.keys(cursosPorCiclo).map(cicloKey => (
                                     <div key={cicloKey} className="mb-6">
-                                        <span className="font-black text-xs text-brand bg-brand-light px-2.5 py-1 rounded-md tracking-wider border border-blue-100">CICLO {cicloKey}</span>
+                                        <div className="flex justify-between items-center mb-3 px-1">
+                                            <span className="font-black text-xs text-brand bg-brand-light px-2.5 py-1 rounded-md tracking-wider border border-blue-100">CICLO {cicloKey}</span>
+                                            <span className="text-[10px] text-slate-400 font-bold">{cursosPorCiclo[cicloKey].length} cursos <i className="fa-solid fa-chevron-up ml-1 text-[8px]"></i></span>
+                                        </div>
+                                        
                                         {cursosPorCiclo[cicloKey].map((curso, idx) => {
                                             const bColor = borderColors[idx % borderColors.length];
                                             return (
-                                                <div key={curso.id} className={`mt-4 bg-white border border-slate-200 border-l-[4px] rounded-xl overflow-hidden shadow-sm ${bColor}`}>
+                                                <div key={curso.id} className={`mb-4 bg-white border border-slate-200 border-l-[4px] rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow ${bColor}`}>
                                                     <div className="p-4">
-                                                        <h3 className="font-black text-[12px] uppercase text-slate-800 mb-2">{curso.nombre}</h3>
+                                                        <div className="flex justify-between items-start mb-2">
+                                                            <h3 className="font-black text-[12px] uppercase text-slate-800 leading-tight pr-2">{curso.nombre}</h3>
+                                                            <span className="bg-slate-50 text-slate-500 border border-slate-200 text-[9px] font-bold px-1.5 py-0.5 rounded whitespace-nowrap">{Object.keys(curso.seccionesBase).length} sec.</span>
+                                                        </div>
+                                                        <div className="flex items-center gap-2 mb-4 text-[10px] text-slate-500 font-bold">
+                                                            <span className="bg-slate-100 text-slate-700 px-2 py-0.5 rounded uppercase border border-slate-200">{curso.codigo}</span>
+                                                            <span>• {curso.creditos} Créditos</span>
+                                                        </div>
+                                                        
                                                         <div className="space-y-3">
                                                             {Object.values(curso.seccionesBase).map(base => {
+                                                                const hasTP = base.tp.length > 0;
+                                                                const labs = Object.keys(base.labs);
                                                                 const tpID = `${curso.id}_${base.seccion}_TP`;
-                                                                const isTPAdded = seccionesAgregadas.some(s => s.id === tpID);
+                                                                const isTPAdded = seccionesAgregadas.some(s => s.id === itemID);
+
+                                                                const cupos = hasTP ? base.tp[0].cupos : (labs.length > 0 ? base.labs[labs[0]][0].cupos : "40");
+
                                                                 return (
                                                                     <div key={base.id} className="space-y-2">
-                                                                        <div className={`border rounded-xl p-3 bg-white transition-all ${isTPAdded ? 'border-brand-accent bg-blue-50/50' : 'border-slate-200'}`}>
-                                                                            <div className="flex justify-between items-center mb-2">
-                                                                                <span className="text-[10px] font-black">SEC {base.seccion}</span>
-                                                                                <button onClick={() => toggleSeccion(curso, tpID, base.seccion, base.tp, 'TP')} className={`w-7 h-7 rounded-lg flex items-center justify-center transition-all border ${isTPAdded ? 'bg-red-50 text-red-500' : 'bg-white text-brand-accent'}`}>
-                                                                                    <i className={`fa-solid ${isTPAdded ? 'fa-minus' : 'fa-plus'}`}></i>
-                                                                                </button>
-                                                                            </div>
-                                                                            {base.tp.map((h, i) => (
-                                                                                <div key={i} className="text-[10px] text-slate-600">
-                                                                                    <b>{h.dia}</b> {h.inicio}-{h.fin} | {h.aula}
-                                                                                </div>
-                                                                            ))}
-                                                                        </div>
-                                                                        {Object.keys(base.labs).map(labSec => {
-                                                                            const labID = `${curso.id}_${labSec}_LAB`;
-                                                                            const isLabAdded = seccionesAgregadas.some(s => s.id === labID);
-                                                                            return (
-                                                                                <div key={labSec} className={`ml-4 border rounded-xl p-3 bg-white ${isLabAdded ? 'border-brand-accent bg-blue-50/50' : 'border-slate-200'}`}>
-                                                                                    <div className="flex justify-between items-center mb-1">
-                                                                                        <span className="text-[9px] font-bold text-brand-accent">LAB {labSec}</span>
-                                                                                        <button onClick={() => toggleSeccion(curso, labID, labSec, base.labs[labSec], 'LAB')} className={`w-5 h-5 rounded-md flex items-center justify-center border ${isLabAdded ? 'bg-red-50 text-red-500' : 'bg-white text-brand-accent'}`}><i className={`fa-solid ${isLabAdded ? 'fa-minus' : 'fa-plus'} text-[8px]`}></i></button>
+                                                                        {hasTP && (
+                                                                            <div className={`border rounded-xl p-3 bg-white transition-all ${isTPAdded ? 'border-brand-accent ring-1 ring-brand-accent/30 bg-blue-50/50 shadow-sm' : 'border-slate-200 hover:border-slate-300'}`}>
+                                                                                <div className="flex justify-between items-center mb-3">
+                                                                                    <span className="bg-slate-50 text-slate-700 text-[10px] font-black px-2 py-1 rounded border border-slate-200 shadow-sm">SECCIÓN {base.seccion}</span>
+                                                                                    <div className="flex items-center gap-2">
+                                                                                        <span className="text-[9px] text-slate-500 font-bold bg-slate-50 px-1.5 py-0.5 rounded border border-slate-100">{cupos} vac.</span>
+                                                                                        <button onClick={() => toggleSeccion(curso, tpID, base.seccion, base.tp, 'TP')} className={`w-7 h-7 rounded-lg flex items-center justify-center transition-all border shadow-sm ${isTPAdded ? 'bg-red-50 border-red-200 text-red-500 hover:bg-red-100' : 'bg-white border-slate-200 text-brand-accent hover:bg-slate-50 hover:border-blue-200'}`}>
+                                                                                            <i className={`fa-solid ${isTPAdded ? 'fa-minus text-xs' : 'fa-plus text-xs'}`}></i>
+                                                                                        </button>
                                                                                     </div>
                                                                                 </div>
-                                                                            )
-                                                                        })}
+                                                                                <div className="space-y-1.5 mt-2">
+                                                                                    {base.tp.map((h, i) => (
+                                                                                        <div key={i} className="text-[10px] border-b border-slate-100 pb-1.5 last:border-0 last:pb-0">
+                                                                                            <div className="flex justify-between font-black text-slate-700 mb-1">
+                                                                                                <span>{h.dia} <span className="font-semibold text-slate-500 ml-1">{h.inicio} - {h.fin}</span></span>
+                                                                                                <span className="bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded border border-slate-200">{h.aula} [{h.tipo}]</span>
+                                                                                            </div>
+                                                                                            <div className="text-slate-500 font-medium truncate" title={h.docente}><i className="fa-solid fa-user-tie text-[9px] mr-1.5 text-slate-400"></i>{h.docente}</div>
+                                                                                        </div>
+                                                                                    ))}
+                                                                                </div>
+                                                                            </div>
+                                                                        )}
+
+                                                                        {labs.length > 0 && (
+                                                                            <div className="pl-3 border-l-2 border-brand-light space-y-2 mt-2 ml-2">
+                                                                                {labs.map(labSec => {
+                                                                                    const labHorarios = base.labs[labSec];
+                                                                                    const labID = `${curso.id}_${labSec}_LAB`;
+                                                                                    const isLabAdded = seccionesAgregadas.some(s => s.id === labID);
+                                                                                    const cupLab = labHorarios[0].cupos;
+
+                                                                                    return (
+                                                                                        <div key={labSec} className={`border rounded-xl p-3 bg-white transition-all ${isLabAdded ? 'border-brand-accent ring-1 ring-brand-accent/30 bg-blue-50/50 shadow-sm' : 'border-slate-200 hover:border-slate-300'}`}>
+                                                                                            <div className="flex justify-between items-center mb-3">
+                                                                                                <span className="bg-slate-50 text-slate-700 text-[10px] font-black px-2 py-1 rounded border border-slate-200 shadow-sm">SEC {labSec} <span className="text-brand-accent">(LAB)</span></span>
+                                                                                                <div className="flex items-center gap-2">
+                                                                                                    <span className="text-[9px] text-slate-500 font-bold bg-slate-50 px-1.5 py-0.5 rounded border border-slate-100">{cupLab} vac.</span>
+                                                                                                    <button onClick={() => toggleSeccion(curso, labID, labSec, labHorarios, 'LAB')} className={`w-7 h-7 rounded-lg flex items-center justify-center transition-all border shadow-sm ${isLabAdded ? 'bg-red-50 border-red-200 text-red-500 hover:bg-red-100' : 'bg-white border-slate-200 text-brand-accent hover:bg-slate-50 hover:border-blue-200'}`}>
+                                                                                                        <i className={`fa-solid ${isLabAdded ? 'fa-minus text-xs' : 'fa-plus text-xs'}`}></i>
+                                                                                                    </button>
+                                                                                                </div>
+                                                                                            </div>
+                                                                                            <div className="space-y-1.5">
+                                                                                                {labHorarios.map((h, i) => (
+                                                                                                    <div key={i} className="text-[10px] border-b border-slate-100 pb-1.5 last:border-0 last:pb-0">
+                                                                                                        <div className="flex justify-between font-black text-slate-700 mb-1">
+                                                                                                            <span>{h.dia} <span className="font-semibold text-slate-500 ml-1">{h.inicio} - {h.fin}</span></span>
+                                                                                                            <span className="bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded border border-slate-200">{h.aula}</span>
+                                                                                                        </div>
+                                                                                                        <div className="text-slate-500 font-medium truncate" title={h.docente}><i className="fa-solid fa-flask text-[9px] mr-1.5 text-slate-400"></i>{h.docente}</div>
+                                                                                                    </div>
+                                                                                                ))}
+                                                                                            </div>
+                                                                                        </div>
+                                                                                    )
+                                                                                })}
+                                                                            </div>
+                                                                        )}
                                                                     </div>
                                                                 )
                                                             })}
@@ -854,44 +1075,102 @@ X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527
                             </div>
                         </div>
 
-                        <div className="flex-1 bg-white rounded-2xl shadow-sm border border-slate-200 flex flex-col min-h-[600px] lg:min-h-0 lg:h-auto overflow-hidden">
-                            <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-white">
-                                <h2 className="font-black text-lg text-slate-800">Mi Horario</h2>
-                                <div className="flex gap-2">
-                                    <button onClick={() => setIsClearModalOpen(true)} className="bg-red-50 text-red-500 px-4 py-2 rounded-xl text-xs font-bold border border-red-100">Vaciar</button>
+                        <div className="flex-1 bg-white rounded-2xl shadow-sm border border-slate-200 flex flex-col min-h-[600px] lg:min-h-0 lg:h-auto relative overflow-hidden">
+                            
+                            <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-white relative z-[60] flex-wrap gap-4">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-8 h-8 rounded-lg bg-blue-50 text-brand-accent flex items-center justify-center"><i className="fa-regular fa-calendar-days"></i></div>
+                                    <h2 className="font-black text-lg text-slate-800">Mi Horario</h2>
+                                    <span className="bg-slate-50 text-slate-500 border border-slate-200 text-[10px] font-bold px-2 py-1 rounded-md ml-2 uppercase tracking-wider">Vista Semanal</span>
+                                </div>
+                                <div className="flex items-center gap-2 relative">
+                                    <button onClick={triggerLimpiarHorario} className="bg-white border border-red-200 text-red-500 hover:bg-red-50 px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 shadow-sm">
+                                        <i className="fa-regular fa-trash-can"></i> Vaciar
+                                    </button>
+                                    <button onClick={undoAction} disabled={historial.length === 0} className="bg-white border border-slate-200 text-slate-500 hover:bg-slate-50 px-3 py-2 rounded-xl text-sm transition flex items-center justify-center disabled:opacity-50 shadow-sm" title="Deshacer">
+                                        <i className="fa-solid fa-rotate-left"></i>
+                                    </button>
+                                    
                                     <div className="relative">
-                                        <button onClick={() => setDropdownOpen(!dropdownOpen)} className="bg-brand text-white px-4 py-2 rounded-xl text-xs font-bold">Exportar <i className="fa-solid fa-chevron-down ml-1"></i></button>
-                                        <div className={`absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-xl border z-[100] dropdown-menu ${dropdownOpen ? 'dropdown-open' : 'dropdown-closed'}`}>
-                                            <button onClick={exportarPNG} className="w-full text-left px-4 py-3 text-xs font-bold text-slate-700 hover:bg-blue-50">Descargar Imagen (PNG)</button>
-                                            <button onClick={exportarPDF} className="w-full text-left px-4 py-3 text-xs font-bold text-slate-700 hover:bg-red-50">Descargar PDF</button>
-                                            <button onClick={exportarWord} className="w-full text-left px-4 py-3 text-xs font-bold text-slate-700 hover:bg-indigo-50">Descargar Word (DOC)</button>
+                                        <button onClick={() => setDropdownOpen(!dropdownOpen)} className="bg-brand hover:bg-brand-dark text-white px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 shadow-sm">
+                                            <i className="fa-solid fa-cloud-arrow-down"></i> Exportar <i className="fa-solid fa-chevron-down text-[10px] ml-1"></i>
+                                        </button>
+                                        
+                                        <div className={`absolute right-0 mt-2 w-52 bg-white rounded-xl shadow-xl border border-slate-200 z-[100] overflow-hidden dropdown-menu ${dropdownOpen ? 'dropdown-open' : 'dropdown-closed'}`}>
+                                            <div className="bg-slate-50 px-4 py-2 border-b border-slate-100"><span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Formato de descarga</span></div>
+                                            <div className="py-1">
+                                                <button onClick={exportarPNG} className="w-full text-left px-4 py-3 text-xs font-semibold text-slate-700 hover:bg-blue-50 hover:text-brand-accent flex items-center gap-3 transition">
+                                                    <i className="fa-solid fa-image text-brand-accent w-4 text-center"></i> Alta Calidad (PNG)
+                                                </button>
+                                                <button onClick={exportarPDF} className="w-full text-left px-4 py-3 text-xs font-semibold text-slate-700 hover:bg-red-50 hover:text-red-600 flex items-center gap-3 transition">
+                                                    <i className="fa-solid fa-file-pdf text-red-500 w-4 text-center"></i> Documento (PDF)
+                                                </button>
+                                                <div className="h-px bg-slate-100 w-full my-1"></div>
+                                                <button onClick={exportarWord} className="w-full text-left px-4 py-3 text-xs font-semibold text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 flex items-center gap-3 transition">
+                                                    <i className="fa-solid fa-file-word text-indigo-500 w-4 text-center"></i> Tabla Editable (DOC)
+                                                </button>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                            <div className="flex-1 overflow-auto scroll-clean w-full">
-                                <div className="min-w-[700px] lg:min-w-full relative" style={{ height: `${TOTAL_HORAS * 60 + 40}px` }}>
-                                    <div className="flex border-b border-slate-200 bg-[#f8fafc] sticky top-0 z-30">
-                                        <div className="w-16 border-r border-slate-200 shrink-0"></div>
+
+                            <div className="flex-1 overflow-auto bg-white scroll-clean w-full relative">
+                                <div ref={calendarRef} className="min-w-[700px] lg:min-w-full relative" style={{ height: `${TOTAL_HORAS * 60 + 40}px` }}>
+                                    
+                                    <div className="flex border-b border-slate-200 bg-[#f8fafc] sticky top-0 z-30 shadow-sm">
+                                        <div className="w-16 border-r border-slate-200 shrink-0 flex items-center justify-center font-black text-[10px] text-slate-400 uppercase tracking-widest">Hora</div>
                                         {diasSemana.map(dia => (<div key={dia} className="flex-1 text-center py-3 font-black text-xs text-slate-700 uppercase border-r border-slate-200 last:border-0">{dia}</div>))}
                                     </div>
+
                                     <div className="relative w-full" style={{ height: `${TOTAL_HORAS * 60}px` }}>
                                         <div className="absolute inset-0 flex">
-                                            <div className="w-16 shrink-0 border-r border-slate-200 bg-[#f8fafc]/50"></div>
+                                            <div className="w-16 shrink-0 border-r border-slate-200 bg-[#f8fafc]/50 z-10"></div>
                                             {diasSemana.map((_, i) => (<div key={i} className="flex-1 border-r border-slate-100 last:border-0 grid-bg"></div>))}
                                         </div>
+                                        
+                                        <div className="absolute top-0 left-0 w-16 text-center text-xs text-slate-400 font-bold z-10">
+                                            {Array.from({length: TOTAL_HORAS + 1}).map((_, i) => (
+                                                <div key={i} className="h-[60px] relative border-b border-slate-200/50">
+                                                    <span className="absolute -top-2.5 left-0 w-full bg-white/80"><span className="text-slate-700 font-black">{String(i + HORA_INICIO).padStart(2, '0')}</span>:00</span>
+                                                </div>
+                                            ))}
+                                        </div>
+
                                         {seccionesAgregadas.map((seccion, sIdx) => {
-                                            const colores = ['bg-[#eff6ff] border-[#3b82f6] text-[#1e3a8a]', 'bg-[#f0fdf4] border-[#10b981] text-[#064e3b]', 'bg-[#fdf2f8] border-[#ec4899] text-[#831843]', 'bg-[#fffbeb] border-[#f59e0b] text-[#78350f]'];
+                                            const colores = [
+                                                'bg-[#eff6ff] border-[#3b82f6] text-[#1e3a8a]', 
+                                                'bg-[#f0fdf4] border-[#10b981] text-[#064e3b]', 
+                                                'bg-[#fdf2f8] border-[#ec4899] text-[#831843]', 
+                                                'bg-[#fffbeb] border-[#f59e0b] text-[#78350f]', 
+                                                'bg-[#f5f3ff] border-[#8b5cf6] text-[#4c1d95]'
+                                            ];
                                             const color = seccion.itemType === 'LAB' ? 'bg-[#f8fafc] border-[#64748b] text-[#334155]' : colores[sIdx % colores.length];
+
                                             return seccion.horarios.map((horario, hIdx) => {
                                                 const colIndex = diasSemana.indexOf(horario.dia);
+                                                if (colIndex === -1) return null;
                                                 const startMin = timeToMins(horario.inicio);
                                                 const offsetTop = startMin - (HORA_INICIO * 60);
                                                 const duration = timeToMins(horario.fin) - startMin;
+
                                                 return (
-                                                    <div key={`${sIdx}-${hIdx}`} className={`absolute class-block rounded-xl border-l-[4px] p-2 flex flex-col items-center justify-center text-center overflow-hidden z-20 ${color}`} style={{ top: `${offsetTop}px`, height: `${duration}px`, width: `calc((100% - 64px) / 6 - 8px)`, left: `calc(64px + ((100% - 64px) / 6) * ${colIndex} + 4px)` }}>
-                                                        <span className="font-black text-[9px] leading-tight mb-1 uppercase">{seccion.nombreCurso}</span>
-                                                        <span className="font-bold text-[8px] opacity-80">{horario.inicio}-{horario.fin} | {horario.aula}</span>
+                                                    <div 
+                                                        key={`${sIdx}-${hIdx}`}
+                                                        className={`absolute class-block rounded-xl border-l-[4px] p-2 flex flex-col items-center justify-center overflow-hidden z-20 text-center ${color}`}
+                                                        style={{ top: `${offsetTop}px`, height: `${duration}px`, width: `calc((100% - 64px) / 6 - 8px)`, left: `calc(64px + ((100% - 64px) / 6) * ${colIndex} + 4px)` }}
+                                                    >
+                                                        <span className="font-black text-[10px] leading-tight mb-1 uppercase tracking-tight">{seccion.nombreCurso}</span>
+                                                        <span className="font-bold text-[9px] opacity-80 mb-1">
+                                                            {seccion.codigo} • Sec. {seccion.seccion}
+                                                        </span>
+                                                        
+                                                        <div className="mt-auto flex flex-col items-center gap-1 w-full">
+                                                            <div className="font-black bg-white/70 px-2 py-0.5 rounded shadow-sm text-[9px] flex items-center justify-center gap-1 border border-black/5 w-max">
+                                                                {horario.aula} <span className="opacity-50">|</span> <span>{horario.tipo}</span>
+                                                            </div>
+                                                            <span className="text-[9px] font-bold flex items-center gap-1 opacity-90"><i className="fa-regular fa-clock"></i> {horario.inicio} - {horario.fin}</span>
+                                                        </div>
                                                     </div>
                                                 )
                                             });
@@ -902,66 +1181,113 @@ X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527
                         </div>
                     </div>
 
-                    <footer className="w-full bg-[#0f172a] shrink-0 flex flex-col items-center justify-center pt-4 pb-6 mt-2 relative overflow-hidden">
-                        <div className="globe-container"><div className="globe">{[...Array(7)].map((_,i)=><div key={i} className="ring"></div>)}</div></div>
+                    <footer className="w-full shrink-0 flex flex-col items-center justify-center pt-4 pb-6 mt-2 relative overflow-hidden" style={{backgroundColor: '#0f172a'}}>
+                        <div className="globe-container">
+                            <div className="globe">
+                                <div className="ring"></div><div className="ring"></div><div className="ring"></div>
+                                <div className="ring"></div><div className="ring"></div><div className="ring"></div>
+                                <div className="ring"></div>
+                            </div>
+                        </div>
                         <div className="creator-text">C R E A D O &nbsp; P O R &nbsp; S E B A S T I A N</div>
-                        <div className="copyright-text">© 2026 UNAC - Integración Estudiantil.</div>
+                        <div className="copyright-text">© 2026 UNAC - Integración Estudiantil. Todos los derechos reservados.</div>
                     </footer>
 
-                    {/* BLOQUE DE EXPORTACIÓN OCULTO - OPTIMIZADO PARA HTML2CANVAS */}
-                    <div ref={hiddenExportRef} style={{ width: '1400px', backgroundColor: '#ffffff', position: 'absolute', top: '-10000px', left: '-10000px', padding: '40px', fontFamily: 'Arial, sans-serif' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '4px solid #1e40af', paddingBottom: '20px', marginBottom: '20px' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-                                <div style={{ width: '70px', height: '70px', backgroundColor: '#eff6ff', borderRadius: '15px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid #bfdbfe' }}>
-                                    <i className="fa-solid fa-atom" style={{ fontSize: '35px', color: '#3b82f6' }}></i>
+                    {/* --- CONTENEDOR DE EXPORTACIÓN (CORREGIDO) --- */}
+                    <div ref={hiddenExportRef} className="bg-white" style={{width: '1400px', position: 'absolute', top: 0, left: '-5000px', padding: '50px', fontFamily: "'Inter', sans-serif", zIndex: -9999, visibility: 'hidden'}}>
+                        <div style={{position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%) rotate(-45deg)', fontSize: '130px', fontWeight: '900', color: 'rgba(59, 130, 246, 0.03)', whiteSpace: 'nowrap', zIndex: '0', pointerEvents: 'none', letterSpacing: '10px'}}>
+                            CREADO POR SEBASTIAN
+                        </div>
+
+                        <div style={{display: 'flex', alignItems: 'center', justifyItems: 'space-between', justifyContent: 'space-between', borderBottom: '5px solid #1e40af', paddingBottom: '25px', marginBottom: '25px', position: 'relative', zIndex: '1'}}>
+                            <div style={{display: 'flex', alignItems: 'center', gap: '25px'}}>
+                                <div style={{width: '80px', height: '80px', backgroundColor: '#eff6ff', borderRadius: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid #bfdbfe'}}>
+                                    <i className="fa-solid fa-atom" style={{fontSize: '40px', color: '#3b82f6'}}></i>
                                 </div>
                                 <div>
-                                    <h1 style={{ margin: '0', fontSize: '28px', color: '#0f172a', fontWeight: '900' }}>CEET FIQ Centro de Estudios <span style={{ color: '#1e40af' }}>María Estela Toledo</span></h1>
-                                    <p style={{ margin: '0', fontSize: '16px', color: '#3b82f6', fontWeight: '800' }}>PROGRAMACIÓN HORARIA 2026-B</p>
+                                    <h1 style={{margin: '0 0 5px 0', fontSize: '32px', color: '#0f172a', fontWeight: '900', letterSpacing: '-0.5px'}}>CEET FIQ Centro de Estudios <span style={{color: '#1e40af'}}>María Estela Toledo</span></h1>
+                                    <p style={{margin: '0', fontSize: '18px', color: '#3b82f6', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '1px'}}>Programación Horaria Oficial 2026-B</p>
                                 </div>
                             </div>
-                            <div style={{ textAlign: 'right' }}>
-                                <p style={{ margin: '0', fontSize: '14px', fontStyle: 'italic', color: '#64748b' }}>"Crecemos juntos, aprendemos mejor"</p>
-                                <p style={{ margin: '5px 0 0 0', fontSize: '12px', color: '#94a3b8' }}>Créditos Totales: {totalCreditos}</p>
+                            <div style={{textAlign: 'right'}}>
+                                <p style={{margin: '0 0 8px 0', fontSize: '16px', color: '#1e40af', fontStyle: 'italic', fontWeight: 'bold'}}>"Crecemos juntos, aprendemos mejor"</p>
+                                <p style={{margin: '0', fontSize: '13px', color: '#64748b', fontWeight: '600', backgroundColor: '#f1f5f9', padding: '6px 12px', borderRadius: '8px', display: 'inline-block'}}>Generado: {new Date().toLocaleDateString()}</p>
                             </div>
                         </div>
 
-                        <div style={{ border: '2px solid #e2e8f0', borderRadius: '15px', overflow: 'hidden' }}>
-                            <div style={{ display: 'flex', backgroundColor: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
-                                <div style={{ width: '70px', padding: '15px 0', textAlign: 'center', fontWeight: '900', color: '#64748b', fontSize: '12px' }}>HORA</div>
-                                {diasSemana.map(d => <div key={d} style={{ flex: 1, padding: '15px 0', textAlign: 'center', fontWeight: '900', color: '#0f172a', fontSize: '14px', borderLeft: '1px solid #e2e8f0' }}>{d}</div>)}
+                        <div style={{display: 'flex', gap: '20px', marginBottom: '25px', position: 'relative', zIndex: '1'}}>
+                            <div style={{backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', padding: '12px 25px', borderRadius: '12px', fontWeight: '800', color: '#1e40af', fontSize: '16px', display: 'flex', alignItems: 'center', gap: '10px'}}>
+                                <i className="fa-solid fa-award"></i> Total Créditos: {totalCreditos} / {MAX_CREDITOS}
                             </div>
-                            <div style={{ position: 'relative', height: `${TOTAL_HORAS * 60}px` }}>
-                                <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', display: 'flex' }}>
-                                    <div style={{ width: '70px', height: '100%', borderRight: '2px solid #e2e8f0', backgroundColor: '#f8fafc' }}></div>
-                                    {diasSemana.map((_, i) => <div key={i} style={{ flex: 1, borderRight: '1px solid #f1f5f9', backgroundSize: '100% 60px', backgroundImage: 'linear-gradient(to bottom, #f1f5f9 1px, transparent 1px)' }}></div>)}
+                            <div style={{backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', padding: '12px 25px', borderRadius: '12px', fontWeight: '800', color: '#475569', fontSize: '16px', display: 'flex', alignItems: 'center', gap: '10px'}}>
+                                <i className="fa-solid fa-book-open"></i> Cursos Matriculados: {new Set(seccionesAgregadas.map(s=>s.cursoId)).size}
+                            </div>
+                        </div>
+
+                        <div style={{border: '3px solid #e2e8f0', borderRadius: '16px', overflow: 'hidden', backgroundColor: 'white', position: 'relative', zIndex: '1', boxShadow: '0 10px 30px rgba(0,0,0,0.05)'}}>
+                            <div style={{display: 'flex', backgroundColor: '#f8fafc', borderBottom: '3px solid #e2e8f0'}}>
+                                <div style={{width: '70px', padding: '18px 0', textAlign: 'center', fontWeight: '900', color: '#64748b', fontSize: '13px', letterSpacing: '1px'}}>HORA</div>
+                                {diasSemana.map(d => <div key={d} style={{flex: 1, padding: '18px 0', textAlign: 'center', fontWeight: '900', color: '#0f172a', fontSize: '15px', borderLeft: '2px solid #e2e8f0', textTransform: 'uppercase'}}>{d}</div>)}
+                            </div>
+                            <div style={{position: 'relative', height: `${TOTAL_HORAS * 60}px`}}>
+                                <div className="absolute inset-0 flex">
+                                    <div style={{width: '70px', borderRight: '2px solid #e2e8f0', backgroundColor: '#f8fafc'}}></div>
+                                    {diasSemana.map((_, i) => <div key={i} style={{flex: 1, borderRight: '1px solid #f1f5f9', backgroundImage: 'linear-gradient(to bottom, #f1f5f9 1px, transparent 1px)', backgroundSize: '100% 60px'}}></div>)}
                                 </div>
-                                <div style={{ position: 'absolute', top: 0, left: 0, width: '70px', fontSize: '11px', color: '#475569', fontWeight: 'bold' }}>
-                                    {Array.from({length: TOTAL_HORAS + 1}).map((_, i) => <div key={i} style={{ height: '60px', borderBottom: '1px solid #e2e8f0', textAlign: 'center', lineHeight: '60px' }}>{formatHourLine(i + HORA_INICIO)}</div>)}
+                                <div className="absolute top-0 left-0" style={{width: '70px', textAlign: 'center', fontSize: '13px', color: '#475569', fontWeight: '800'}}>
+                                    {Array.from({length: TOTAL_HORAS + 1}).map((_, i) => (
+                                        <div key={i} style={{height: '60px', position: 'relative', borderBottom: '1px solid #e2e8f0'}}>
+                                            <span style={{position: 'absolute', top: '-9px', left: 0, width: '100%', backgroundColor: 'white'}}>{formatHourLine(i + HORA_INICIO)}</span>
+                                        </div>
+                                    ))}
                                 </div>
+                                
                                 {seccionesAgregadas.map((seccion, sIdx) => {
-                                    const colores = [{bg: '#eff6ff', br: '#3b82f6', tx: '#1e40af'}, {bg: '#f0fdf4', br: '#10b981', tx: '#166534'}, {bg: '#fdf2f8', br: '#ec4899', tx: '#9d174d'}, {bg: '#fffbeb', br: '#f59e0b', tx: '#92400e'}];
-                                    const c = seccion.itemType === 'LAB' ? {bg: '#f8fafc', br: '#64748b', tx: '#334155'} : colores[sIdx % colores.length];
+                                    const colores = [
+                                        {bg: '#eff6ff', br: '#3b82f6', txt: '#1e40af'},
+                                        {bg: '#f0fdf4', br: '#10b981', txt: '#166534'},
+                                        {bg: '#fdf2f8', br: '#ec4899', txt: '#9d174d'},
+                                        {bg: '#fffbeb', br: '#f59e0b', txt: '#92400e'},
+                                        {bg: '#f5f3ff', br: '#8b5cf6', txt: '#5b21b6'}
+                                    ];
+                                    const c = seccion.itemType === 'LAB' ? {bg: '#f8fafc', br: '#64748b', txt: '#334155'} : colores[sIdx % colores.length];
+
                                     return seccion.horarios.map((horario, hIdx) => {
                                         const colIndex = diasSemana.indexOf(horario.dia);
                                         const startMin = timeToMins(horario.inicio);
                                         const offsetTop = startMin - (HORA_INICIO * 60);
                                         const duration = timeToMins(horario.fin) - startMin;
+
                                         return (
-                                            <div key={`exp-${sIdx}-${hIdx}`} style={{ position: 'absolute', top: `${offsetTop}px`, left: `calc(70px + (100% - 70px)/6 * ${colIndex} + 5px)`, height: `${duration}px`, width: `calc((100% - 70px)/6 - 10px)`, backgroundColor: c.bg, borderLeft: `5px solid ${c.br}`, padding: '10px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', textAlign: 'center', borderRadius: '8px', zIndex: '10' }}>
-                                                <div style={{ fontWeight: '900', fontSize: '11px', color: '#0f172a', marginBottom: '4px', textTransform: 'uppercase' }}>{seccion.nombreCurso}</div>
-                                                <div style={{ fontWeight: 'bold', fontSize: '10px', color: c.tx }}>{seccion.codigo} | SEC {seccion.seccion}</div>
-                                                <div style={{ fontSize: '10px', marginTop: '4px', color: '#475569' }}>{horario.inicio} - {horario.fin} | <b>{horario.aula}</b></div>
+                                            <div 
+                                                key={`exp-${sIdx}-${hIdx}`}
+                                                style={{ position: 'absolute', top: `${offsetTop}px`, height: `${duration}px`, width: '190px', left: (70 + (colIndex * 221.6) + 6) + 'px', backgroundColor: c.bg, borderLeft: `6px solid ${c.br}`, borderRadius: '12px', padding: '12px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', zIndex: 10 }}
+                                            >
+                                                <span style={{fontWeight: '900', color: '#0f172a', fontSize: '13px', marginBottom: '6px', textTransform: 'uppercase', lineHeight: '1.2', width: '100%'}}>{seccion.nombreCurso}</span>
+                                                <span style={{fontWeight: '800', color: c.txt, fontSize: '11px', marginBottom: '6px', width: '100%'}}>
+                                                    {seccion.codigo} • Sec. {seccion.seccion}
+                                                </span>
+                                                <span style={{fontSize: '11px', fontWeight: '700', color: '#475569', marginBottom: '8px', width: '100%', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'}}>{horario.docente}</span>
+                                                <div style={{display: 'flex', gap: '8px', alignItems: 'center', justifyContent: 'center', width: '100%'}}>
+                                                    <span style={{fontSize: '11px', fontWeight: '900', color: c.txt, backgroundColor: 'white', padding: '3px 8px', borderRadius: '6px', border: `1px solid ${c.br}40`}}>
+                                                        {horario.aula} | {horario.tipo}
+                                                    </span>
+                                                    <span style={{fontSize: '11px', fontWeight: '800', color: '#ef4444'}}>
+                                                        <i className="fa-regular fa-clock"></i> {horario.inicio}-{horario.fin}
+                                                    </span>
+                                                </div>
                                             </div>
                                         )
                                     });
                                 })}
                             </div>
                         </div>
-                        <div style={{ marginTop: '20px', borderTop: '2px solid #e2e8f0', paddingTop: '15px', display: 'flex', justifyContent: 'space-between' }}>
-                            <p style={{ margin: '0', fontSize: '12px', color: '#94a3b8' }}>© 2026 UNAC - Facultad de Ingeniería Química</p>
-                            <p style={{ margin: '0', fontSize: '14px', fontWeight: '900', color: '#3b82f6', letterSpacing: '2px' }}>CREADO POR SEBASTIAN</p>
+                        
+                        <div style={{marginTop: '30px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '2px solid #e2e8f0', paddingTop: '20px', position: 'relative', zIndex: '1'}}>
+                            <p style={{margin: '0', fontSize: '14px', color: '#94a3b8', fontWeight: '600'}}>© 2026 UNAC - Todos los derechos reservados.</p>
+                            <p style={{margin: '0', fontSize: '18px', color: '#3b82f6', fontWeight: '900', letterSpacing: '3px'}}>CREADO POR SEBASTIAN <i className="fa-solid fa-code" style={{marginLeft: '8px', color: '#60a5fa'}}></i></p>
                         </div>
+
                     </div>
                 </React.Fragment>
             );
