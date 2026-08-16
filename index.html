@@ -207,7 +207,7 @@ V	FISICOQUÍMICA II - IEEP23 PLAN 2023 KAMALA KANTA NANDA - 2412 01Q (90G) Lun	0
 V	FISICOQUÍMICA II - IEEP23 PLAN 2023 PANTOJA CADILLO AGERICO - 1525 01Q (91G) Lun	10:30 a 13:00 SL01LA74 PRESENCIAL L 20 Completado CALLAO
 V	FISICOQUÍMICA II - IEEP23 PLAN 2023 HUAMANI TAIPE GUMERCINDO - 2276 02Q Mar	08:00 a 09:40 FIQ3A07 PRESENCIAL T 40 Completado CALLAO
 V	FISICOQUÍMICA II - IEEP23 PLAN 2023 HUAMANI TAIPE GUMERCINDO - 2276 02Q Mié	09:40 a 11:20 FIQ4A12 PRESENCIAL P 40 Completado CALLAO
-V	FISICOQUÍMICA II - IEEP23 PLAN 2023 BENITES ZELAYA ANDERSON ALEJANDRO - 2353 02Q (92G) Mar	13:50 a 16:20 SL01LA74 PRESENCIAL L 20 Completado CALLAO
+V	FISICOQUÍMICA II - IEEP23 PLAN 2023 BENITES ZELAYA ANDERSON ALEJARENDO - 2353 02Q (92G) Mar	13:50 a 16:20 SL01LA74 PRESENCIAL L 20 Completado CALLAO
 V	FISICOQUÍMICA II - IEEP23 PLAN 2023 KAMALA KANTA NANDA - 2412 02Q (93G) Mié	11:20 a 13:50 SL01LA74 PRESENCIAL L 20 Completado CALLAO
 V	MATERIALES DE INGENIERÍA - IEEP27 PLAN 2023 CHAMPA HENRIQUEZ OSCAR MANUEL - 0512 01Q Vie	11:20 a 13:50 FIQ1A03 PRESENCIAL T 90 Completado CALLAO
 V	QUÍMICA ANALÍTICA CUANTITATIVA - IEEB25 PLAN 2023 ANCIETA DEXTRE CARLOS ALEJANDRO - 0580 01Q Mar	08:00 a 09:40 FIQ4A11 PRESENCIAL T 40 Completado CALLAO
@@ -555,6 +555,20 @@ X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527
             );
         };
 
+        // === MODAL DE CARGA PARA EXPORTACIÓN ===
+        const ExportLoadingModal = ({ isOpen }) => {
+            if (!isOpen) return null;
+            return (
+                <div className="fixed inset-0 bg-slate-900/60 z-[200] flex items-center justify-center backdrop-blur-sm">
+                    <div className="bg-white p-8 rounded-3xl shadow-2xl flex flex-col items-center animate-[popIn_0.2s_ease-out]">
+                        <div className="w-12 h-12 border-4 border-brand border-t-transparent rounded-full animate-spin mb-4"></div>
+                        <p className="font-bold text-slate-700">Generando archivo...</p>
+                        <p className="text-xs text-slate-500 mt-1">Por favor espera un momento</p>
+                    </div>
+                </div>
+            );
+        };
+
         const App = () => {
             const [seccionesAgregadas, setSeccionesAgregadas] = useState([]);
             const [historial, setHistorial] = useState([]);
@@ -562,6 +576,7 @@ X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527
             const [busqueda, setBusqueda] = useState('');
             const [dropdownOpen, setDropdownOpen] = useState(false);
             const [toast, setToast] = useState({ visible: false, message: '', type: 'success' });
+            const [isExporting, setIsExporting] = useState(false);
             
             const [conflictModalData, setConflictModalData] = useState(null);
             const [isClearModalOpen, setIsClearModalOpen] = useState(false);
@@ -767,72 +782,76 @@ X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527
                 return true;
             };
 
-            // --- CORRECCIÓN LÓGICA EXPORTAR ---
+            // MODIFICACIÓN: Lógica de exportación con ventana de carga y ajuste completo
             const exportarPNG = () => {
                 setDropdownOpen(false);
                 if (!validateExport()) return;
                 
-                showToast("Generando Imagen de alta calidad...", 'success');
-                const target = hiddenExportRef.current;
+                setIsExporting(true);
                 
-                // Forzamos posicionamiento para que html2canvas no se pierda
-                const originalStyle = target.style.cssText;
-                target.style.left = "0";
-                target.style.top = "0";
-                target.style.position = "fixed";
-                target.style.visibility = "visible";
+                setTimeout(() => {
+                    if(hiddenExportRef.current) {
+                        const target = hiddenExportRef.current;
+                        const originalLeft = target.style.left;
+                        target.style.left = '0px';
 
-                html2canvas(target, { 
-                    scale: 3, // Mayor escala evita desfaces de texto
-                    useCORS: true,
-                    backgroundColor: '#ffffff',
-                    width: 1400,
-                    height: target.scrollHeight,
-                }).then(canvas => {
-                    target.style.cssText = originalStyle;
-                    const link = document.createElement('a');
-                    link.download = 'Horario_CEET_FIQ.png';
-                    link.href = canvas.toDataURL('image/png', 1.0);
-                    link.click();
-                });
+                        html2canvas(target, { 
+                            scale: 2, 
+                            backgroundColor: '#ffffff',
+                            useCORS: true,
+                            logging: false
+                        }).then(canvas => {
+                            target.style.left = originalLeft;
+                            const link = document.createElement('a');
+                            link.download = 'Horario_CEET_FIQ.png';
+                            link.href = canvas.toDataURL('image/png');
+                            link.click();
+                            setIsExporting(false);
+                            showToast("Exportación completada", 'success');
+                        }).catch(err => {
+                            console.error(err);
+                            setIsExporting(false);
+                            showToast("Error al exportar", 'error');
+                        });
+                    }
+                }, 500);
             };
 
             const exportarPDF = () => {
                 setDropdownOpen(false);
                 if (!validateExport()) return;
                 
-                showToast("Generando PDF sin recortes...", 'success');
-                const target = hiddenExportRef.current;
-                
-                const originalStyle = target.style.cssText;
-                target.style.left = "0";
-                target.style.top = "0";
-                target.style.position = "fixed";
-                target.style.visibility = "visible";
+                setIsExporting(true);
 
-                html2canvas(target, { 
-                    scale: 2, 
-                    useCORS: true,
-                    backgroundColor: '#ffffff',
-                    width: 1400,
-                    height: target.scrollHeight,
-                }).then(canvas => {
-                    target.style.cssText = originalStyle;
-                    const imgData = canvas.toDataURL('image/png');
-                    const { jsPDF } = window.jspdf;
-                    
-                    // A4 horizontal: 297mm x 210mm
-                    const pdf = new jsPDF('l', 'mm', 'a4');
-                    const pageWidth = pdf.internal.pageSize.getWidth();
-                    const pageHeight = pdf.internal.pageSize.getHeight();
-                    
-                    // Ajustar imagen al ancho del PDF
-                    const imgWidth = pageWidth;
-                    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                setTimeout(() => {
+                    if(hiddenExportRef.current) {
+                        const target = hiddenExportRef.current;
+                        const originalLeft = target.style.left;
+                        target.style.left = '0px';
 
-                    pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
-                    pdf.save('Horario_CEET_FIQ.pdf');
-                });
+                        html2canvas(target, { 
+                            scale: 2, 
+                            backgroundColor: '#ffffff',
+                            useCORS: true
+                        }).then(canvas => {
+                            target.style.left = originalLeft;
+                            const imgData = canvas.toDataURL('image/png');
+                            const { jsPDF } = window.jspdf;
+                            // PDF horizontal (landscape)
+                            const pdf = new jsPDF('l', 'mm', 'a4');
+                            const pdfWidth = pdf.internal.pageSize.getWidth();
+                            const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+                            pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+                            pdf.save('Horario_CEET_FIQ.pdf');
+                            setIsExporting(false);
+                            showToast("Exportación completada", 'success');
+                        }).catch(err => {
+                            console.error(err);
+                            setIsExporting(false);
+                            showToast("Error al exportar", 'error');
+                        });
+                    }
+                }, 500);
             };
 
             const exportarWord = () => {
@@ -886,6 +905,7 @@ X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527
                 <React.Fragment>
                     <ConflictModal conflictData={conflictModalData} onClose={() => setConflictModalData(null)} onForceReplace={handleForceReplace} onSelectSuggestion={handleSelectSuggestion} />
                     <ClearModal isOpen={isClearModalOpen} onClose={() => setIsClearModalOpen(false)} onConfirm={confirmLimpiarHorario} />
+                    <ExportLoadingModal isOpen={isExporting} />
 
                     {toast.visible && (
                         <div className={`fixed bottom-6 right-6 px-5 py-3 rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.15)] flex items-center gap-4 z-[110] animate-[popIn_0.3s_ease-out] border-2 ${toast.type === 'error' ? 'bg-white border-red-500' : 'bg-white border-emerald-500'}`}>
@@ -952,6 +972,7 @@ X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527
                         </div>
                     </div>
 
+                    {/* SECCIÓN PRINCIPAL */}
                     <div className="flex flex-col lg:flex-row lg:flex-1 lg:min-h-0 gap-3 md:gap-4 pb-2">
                         
                         <div className="w-full lg:w-[350px] shrink-0 bg-white rounded-2xl shadow-sm border border-slate-200 flex flex-col h-[500px] lg:h-auto overflow-hidden">
@@ -996,7 +1017,7 @@ X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527
                                                                 const hasTP = base.tp.length > 0;
                                                                 const labs = Object.keys(base.labs);
                                                                 const tpID = `${curso.id}_${base.seccion}_TP`;
-                                                                const isTPAdded = seccionesAgregadas.some(s => s.id === itemID);
+                                                                const isTPAdded = seccionesAgregadas.some(s => s.id === tpID);
 
                                                                 const cupos = hasTP ? base.tp[0].cupos : (labs.length > 0 ? base.labs[labs[0]][0].cupos : "40");
 
@@ -1193,8 +1214,8 @@ X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527
                         <div className="copyright-text">© 2026 UNAC - Integración Estudiantil. Todos los derechos reservados.</div>
                     </footer>
 
-                    {/* --- CONTENEDOR DE EXPORTACIÓN (CORREGIDO) --- */}
-                    <div ref={hiddenExportRef} className="bg-white" style={{width: '1400px', position: 'absolute', top: 0, left: '-5000px', padding: '50px', fontFamily: "'Inter', sans-serif", zIndex: -9999, visibility: 'hidden'}}>
+                    {/* BLOQUE DE EXPORTACIÓN (CONTENEDOR OCULTO) */}
+                    <div ref={hiddenExportRef} className="bg-white" style={{width: '1400px', position: 'absolute', top: 0, left: '-20000px', padding: '50px', fontFamily: "'Inter', sans-serif", zIndex: -9999}}>
                         <div style={{position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%) rotate(-45deg)', fontSize: '130px', fontWeight: '900', color: 'rgba(59, 130, 246, 0.03)', whiteSpace: 'nowrap', zIndex: '0', pointerEvents: 'none', letterSpacing: '10px'}}>
                             CREADO POR SEBASTIAN
                         </div>
@@ -1261,14 +1282,14 @@ X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527
                                         return (
                                             <div 
                                                 key={`exp-${sIdx}-${hIdx}`}
-                                                style={{ position: 'absolute', top: `${offsetTop}px`, height: `${duration}px`, width: '190px', left: (70 + (colIndex * 221.6) + 6) + 'px', backgroundColor: c.bg, borderLeft: `6px solid ${c.br}`, borderRadius: '12px', padding: '12px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', zIndex: 10 }}
+                                                style={{ position: 'absolute', top: `${offsetTop}px`, height: `${duration}px`, width: `calc((100% - 70px) / 6 - 12px)`, left: `calc(70px + ((100% - 70px) / 6) * ${colIndex} + 6px)`, backgroundColor: c.bg, borderLeft: `6px solid ${c.br}`, borderRadius: '12px', padding: '12px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}
                                             >
-                                                <span style={{fontWeight: '900', color: '#0f172a', fontSize: '13px', marginBottom: '6px', textTransform: 'uppercase', lineHeight: '1.2', width: '100%'}}>{seccion.nombreCurso}</span>
-                                                <span style={{fontWeight: '800', color: c.txt, fontSize: '11px', marginBottom: '6px', width: '100%'}}>
+                                                <span style={{fontWeight: '900', color: '#0f172a', fontSize: '13px', marginBottom: '6px', textTransform: 'uppercase', lineHeight: '1.2'}}>{seccion.nombreCurso}</span>
+                                                <span style={{fontWeight: '800', color: c.txt, fontSize: '11px', marginBottom: '6px'}}>
                                                     {seccion.codigo} • Sec. {seccion.seccion}
                                                 </span>
-                                                <span style={{fontSize: '11px', fontWeight: '700', color: '#475569', marginBottom: '8px', width: '100%', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'}}>{horario.docente}</span>
-                                                <div style={{display: 'flex', gap: '8px', alignItems: 'center', justifyContent: 'center', width: '100%'}}>
+                                                <span style={{fontSize: '11px', fontWeight: '700', color: '#475569', marginBottom: '8px'}}>{horario.docente}</span>
+                                                <div style={{display: 'flex', gap: '8px', alignItems: 'center', justifyContent: 'center'}}>
                                                     <span style={{fontSize: '11px', fontWeight: '900', color: c.txt, backgroundColor: 'white', padding: '3px 8px', borderRadius: '6px', border: `1px solid ${c.br}40`}}>
                                                         {horario.aula} | {horario.tipo}
                                                     </span>
