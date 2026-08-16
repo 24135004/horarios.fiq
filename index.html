@@ -12,8 +12,8 @@
             theme: {
                 extend: {
                     colors: {
-                        brand: { light: '#e0f2fe', DEFAULT: '#0ea5e9', dark: '#0369a1', accent: '#0284c7' }, // Azul FIQ
-                        ceet: { green: '#059669', darkgreen: '#064e3b' }
+                        unac: { light: '#e6f0fa', DEFAULT: '#002855', dark: '#00152e', accent: '#004080' },
+                        gold: { light: '#fde047', DEFAULT: '#d4af37', dark: '#a16207' }
                     }
                 }
             }
@@ -28,26 +28,27 @@
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     
-    <!-- html2canvas para exportar el horario a Imagen -->
+    <!-- Librerías para Exportar a Imagen y PDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
-        body { font-family: 'Inter', sans-serif; background-color: #f1f5f9; margin: 0; padding: 0; }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #002855; overflow: hidden; margin: 0; padding: 0;}
         
-        /* Scrollbars personalizados */
+        /* Scrollbars */
         .scroll-clean::-webkit-scrollbar { width: 6px; height: 6px; }
         .scroll-clean::-webkit-scrollbar-track { background: transparent; }
         .scroll-clean::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
         .scroll-clean::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
         
-        .grid-bg { background-image: linear-gradient(to bottom, #e2e8f0 1px, transparent 1px); background-size: 100% 60px; }
+        .grid-bg { background-image: linear-gradient(to bottom, #f1f5f9 1px, transparent 1px); background-size: 100% 60px; }
         @keyframes popIn { 0% { transform: scale(0.95); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
         .class-block { animation: popIn 0.2s ease-out; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); border-left-width: 4px; }
         
         /* Estilos del Globo 3D */
-        .footer-dark { background-color: #0f172a; position: relative; overflow: hidden; padding: 50px 20px 30px; border-top: 1px solid #334155; }
-        .globe-container { perspective: 1000px; width: 100px; height: 100px; margin: 0 auto 20px; position: relative; z-index: 10;}
+        .footer-container { background-color: #00152e; position: relative; overflow: hidden; padding: 50px 20px 30px; border-top: 2px solid #d4af37; margin-top: 40px;}
+        .globe-container { perspective: 1000px; width: 110px; height: 110px; margin: 0 auto 20px; position: relative; z-index: 10;}
         .globe { width: 100%; height: 100%; transform-style: preserve-3d; animation: spin 15s linear infinite; }
         .ring { position: absolute; width: 100%; height: 100%; border: 1px solid rgba(212, 175, 55, 0.4); border-radius: 50%; }
         .ring:nth-child(1) { transform: rotateY(0deg); }
@@ -58,17 +59,18 @@
         .ring:nth-child(6) { transform: rotateY(150deg); }
         .ring:nth-child(7) { transform: rotateX(90deg); border-color: rgba(212, 175, 55, 0.8); }
         @keyframes spin { 0% { transform: rotateX(15deg) rotateY(0deg); } 100% { transform: rotateX(15deg) rotateY(360deg); } }
-        .creator-text { font-weight: 900; letter-spacing: 0.3em; color: #d4af37; text-shadow: 0 0 10px rgba(212,175,55,0.3); font-size: 0.8rem; text-align: center; margin-bottom: 5px; z-index: 10; position: relative;}
-        .copyright-text { color: #64748b; font-size: 0.65rem; font-style: italic; text-align: center; letter-spacing: 0.05em; z-index: 10; position: relative;}
+        
+        .creator-text { font-weight: 900; letter-spacing: 0.2em; color: #d4af37; text-shadow: 0 0 10px rgba(212,175,55,0.3); font-size: 0.9rem; text-align: center; margin-bottom: 5px; z-index: 10; position: relative;}
+        .copyright-text { color: #94a3b8; font-size: 0.7rem; text-align: center; letter-spacing: 0.05em; z-index: 10; position: relative;}
     </style>
 </head>
-<body class="flex h-screen overflow-hidden">
+<body class="flex h-screen w-full">
     <div id="root" class="w-full h-full"></div>
 
     <script type="text/babel">
-        const { useState, useMemo, useRef } = React;
+        const { useState, useMemo, useRef, useEffect } = React;
 
-        // === DATOS INTACTOS DE LA VERSIÓN ANTERIOR (100% FUNCIONALES) ===
+        // === DATOS DE LA TABLA (COMPLETOS I al X) ===
         const rawTableData = `
 I	ESTADO, SOCIEDAD, CULTURA Y DESARROLLO HUMANO - IEGH06 PLAN 2026 RODRIGUEZ TARANCO OSCAR JUAN - 2425 01Q Lun	08:00 a 10:30 FIQ1A03 PRESENCIAL T 90 Completado CALLAO
 I	ESTADO, SOCIEDAD, CULTURA Y DESARROLLO HUMANO - IEGH06 PLAN 2026 RODRIGUEZ TARANCO OSCAR JUAN - 2425 02Q Mar	10:30 a 13:00 FIQ1A03 PRESENCIAL T 90 Completado CALLAO
@@ -289,6 +291,7 @@ X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527
 X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527 02Q Lun	18:50 a 21:20 FIQ2A04 PRESENCIAL T 80 Completado CALLAO
 X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527 02Q Jue	16:20 a 18:50 FIQ2A04 PRESENCIAL P 80 Completado CALLAO`;
 
+        // === PROCESADOR DE DATOS INTACTO ===
         const parseData = () => {
             const lines = rawTableData.trim().split('\n');
             const courseMap = {};
@@ -303,7 +306,12 @@ X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527
 
                 const planIndex = col2.indexOf(" PLAN ");
                 if (planIndex === -1) return;
-                const cursoNombre = col2.substring(0, planIndex).trim();
+                const cursoNombreCompleto = col2.substring(0, planIndex).trim();
+                
+                // Extraer el código del curso (Ej: IEGH06) y dejar el nombre limpio
+                const codeMatch = cursoNombreCompleto.match(/-\s*([A-Z0-9]+)$/);
+                const codigo = codeMatch ? codeMatch[1] : "FIQ";
+                const cursoNombre = cursoNombreCompleto.replace(/-\s*[A-Z0-9]+$/, '').trim();
 
                 const col2Words = col2.split(' ');
                 const dia = col2Words.pop();
@@ -333,16 +341,20 @@ X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527
                 const fin = timeMatch[2];
 
                 const restCol3 = col3.substring(timeMatch[0].length).trim().split(' ');
+                let tipo = "T";
+                let cupos = "40";
                 const tipoIndex = restCol3.findIndex(w => w === 'T' || w === 'P' || w === 'L');
-                if (tipoIndex === -1) return;
-                const tipo = restCol3[tipoIndex];
+                if (tipoIndex !== -1) {
+                    tipo = restCol3[tipoIndex];
+                    cupos = restCol3[tipoIndex + 1] || "40";
+                }
                 
                 let modalIndex = restCol3.findIndex(w => w === 'PRESENCIAL' || w === 'VIRTUAL');
                 let aula = modalIndex > 0 ? restCol3.slice(0, modalIndex).join(' ') : "LAB";
                 if (!aula) aula = "LAB";
 
                 if (!courseMap[cursoNombre]) {
-                    courseMap[cursoNombre] = { id: cursoNombre, nombre: cursoNombre, ciclo: ciclo, creditos: 4, seccionesBase: {} };
+                    courseMap[cursoNombre] = { id: cursoNombre, nombre: cursoNombre, codigo: codigo, ciclo: ciclo, creditos: 4, seccionesBase: {} };
                 }
 
                 const baseSeccion = seccion.split(' ')[0];
@@ -354,7 +366,7 @@ X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527
                     };
                 }
 
-                const claseObj = { dia, inicio, fin, tipo, aula, docente };
+                const claseObj = { dia, inicio, fin, tipo, aula, docente, cupos };
 
                 if (tipo === 'L' || seccion.includes('G')) {
                     if (!courseMap[cursoNombre].seccionesBase[baseSeccion].labs[seccion]) {
@@ -370,13 +382,27 @@ X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527
         };
 
         const dbCursos = parseData();
+        // Colores de borde para el catálogo idénticos a la foto
+        const borderColors = ['bg-purple-600', 'bg-emerald-600', 'bg-blue-600', 'bg-orange-500', 'bg-pink-600', 'bg-cyan-600'];
 
-        // === APLICACIÓN PRINCIPAL ===
+        // === COMPONENTE REACT PRINCIPAL ===
         const App = () => {
             const [seccionesAgregadas, setSeccionesAgregadas] = useState([]);
             const [filtroCiclo, setFiltroCiclo] = useState('Todos');
             const [busqueda, setBusqueda] = useState('');
+            const [isSidebarOpen, setIsSidebarOpen] = useState(window.innerWidth >= 1024);
+            const [showExportMenu, setShowExportMenu] = useState(false);
             const calendarRef = useRef(null);
+
+            // Responsive de la barra lateral
+            useEffect(() => {
+                const handleResize = () => {
+                    if (window.innerWidth >= 1024) setIsSidebarOpen(true);
+                    else setIsSidebarOpen(false);
+                };
+                window.addEventListener('resize', handleResize);
+                return () => window.removeEventListener('resize', handleResize);
+            }, []);
 
             const timeToMins = (timeStr) => {
                 if(!timeStr) return 0;
@@ -421,6 +447,15 @@ X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527
                 return matchCiclo && matchBus;
             });
 
+            // Agrupando los cursos filtrados por ciclo
+            const cursosPorCiclo = useMemo(() => {
+                return cursosFiltrados.reduce((acc, curso) => {
+                    if (!acc[curso.ciclo]) acc[curso.ciclo] = [];
+                    acc[curso.ciclo].push(curso);
+                    return acc;
+                }, {});
+            }, [cursosFiltrados]);
+
             const toggleSeccion = (curso, itemID, nombreSeccion, horariosArray, itemType) => {
                 const isAdded = seccionesAgregadas.some(s => s.id === itemID);
                 if (isAdded) {
@@ -443,13 +478,31 @@ X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527
                 }
             };
 
-            const exportarCalendario = () => {
+            // Exportación a PNG
+            const exportarPNG = () => {
                 if(calendarRef.current) {
                     html2canvas(calendarRef.current, { scale: 2, backgroundColor: '#ffffff' }).then(canvas => {
                         const link = document.createElement('a');
                         link.download = 'Mi_Horario_CEET_FIQ.png';
                         link.href = canvas.toDataURL('image/png');
                         link.click();
+                        setShowExportMenu(false);
+                    });
+                }
+            };
+
+            // Exportación a PDF
+            const exportarPDF = () => {
+                if(calendarRef.current) {
+                    html2canvas(calendarRef.current, { scale: 2, backgroundColor: '#ffffff' }).then(canvas => {
+                        const imgData = canvas.toDataURL('image/png');
+                        const { jsPDF } = window.jspdf;
+                        const pdf = new jsPDF('l', 'mm', 'a4');
+                        const pdfWidth = pdf.internal.pageSize.getWidth();
+                        const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+                        pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+                        pdf.save('Mi_Horario_CEET_FIQ.pdf');
+                        setShowExportMenu(false);
                     });
                 }
             };
@@ -460,233 +513,286 @@ X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527
             const TOTAL_HORAS = HORA_FIN - HORA_INICIO;
 
             return (
-                <div className="flex h-full w-full">
-                    {/* BARRA LATERAL (Sidebar) Idéntica a la imagen */}
-                    <aside className="w-64 bg-white border-r border-slate-200 flex flex-col items-center py-6 shadow-sm z-20 shrink-0 hidden md:flex h-full">
-                        <div className="w-full px-5 flex flex-col items-center border-b border-slate-100 pb-6 mb-4">
-                            {/* LOGO CEET - Si no encuentra la imagen local, mostrará texto */}
-                            <img src="logo-ceet.png" alt="CEET FIQ" className="w-40 h-auto object-contain mb-3" 
-                                 onError={(e) => {
-                                     e.target.style.display='none';
-                                     e.target.nextSibling.style.display='flex';
-                                 }} 
-                            />
+                <div className="flex h-screen w-full relative">
+                    
+                    {/* Overlay móvil */}
+                    {isSidebarOpen && (
+                        <div className="fixed inset-0 bg-black/50 z-40 lg:hidden" onClick={() => setIsSidebarOpen(false)}></div>
+                    )}
+
+                    {/* BARRA LATERAL IZQUIERDA BLANCA */}
+                    <aside className={`fixed lg:static top-0 left-0 h-full bg-white border-r border-slate-200 w-64 z-50 transform transition-transform duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0 lg:w-0 lg:hidden'} flex flex-col shrink-0`}>
+                        <div className="p-6 flex flex-col items-center border-b border-slate-100 relative">
+                            <button className="lg:hidden absolute top-4 right-4 text-slate-400 hover:text-slate-600" onClick={() => setIsSidebarOpen(false)}>
+                                <i className="fa-solid fa-xmark text-xl"></i>
+                            </button>
+                            
+                            <img src="logo-ceet.png" alt="Logo CEET FIQ" className="w-36 h-auto object-contain mb-3" 
+                                 onError={(e) => { e.target.style.display='none'; e.target.nextSibling.style.display='flex'; }} />
                             <div className="hidden flex-col items-center text-center">
                                 <i className="fa-solid fa-flask text-4xl text-unac mb-2"></i>
                                 <h1 className="font-black text-xl text-slate-800 tracking-tight">CEET <span className="text-unac">FIQ</span></h1>
                             </div>
-                            
-                            <p className="text-[10px] text-slate-500 font-bold mt-2 text-center">FACULTAD DE INGENIERÍA QUÍMICA</p>
-                            <span className="text-[9px] italic text-unac/70 mt-1 bg-unac/5 px-2 py-0.5 rounded-full text-center">"Crecemos juntos, aprendemos mejor"</span>
+                            <span className="text-[10px] italic text-unac font-bold mt-2 bg-slate-100 px-3 py-1 rounded-md text-center shadow-sm">"Crecemos juntos, aprendemos mejor"</span>
                         </div>
 
-                        <nav className="w-full px-4 space-y-2 flex-1">
-                            <a href="#" className="flex items-center gap-3 px-4 py-2.5 bg-ceet-green text-white rounded-xl font-bold shadow-md shadow-ceet-green/30 text-sm"><i className="fa-solid fa-calendar-days w-5 text-center"></i> Planificador</a>
-                            <a href="#" className="flex items-center gap-3 px-4 py-2.5 text-slate-600 hover:bg-slate-100 rounded-xl font-semibold transition text-sm"><i className="fa-solid fa-clock-rotate-left w-5 text-center"></i> Mis Horarios</a>
-                            <a href="#" className="flex items-center gap-3 px-4 py-2.5 text-slate-600 hover:bg-slate-100 rounded-xl font-semibold transition text-sm"><i className="fa-solid fa-book w-5 text-center"></i> Catálogo</a>
-                            <a href="#" className="flex items-center gap-3 px-4 py-2.5 text-slate-600 hover:bg-slate-100 rounded-xl font-semibold transition text-sm"><i className="fa-solid fa-chart-simple w-5 text-center"></i> Estadísticas</a>
+                        <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto scroll-clean">
+                            <a href="#" className="flex items-center gap-3 px-4 py-3 bg-unac/10 text-unac rounded-xl font-bold transition"><i className="fa-solid fa-calendar-days w-5"></i> Planificador</a>
+                            <a href="#" className="flex items-center gap-3 px-4 py-3 text-slate-500 hover:bg-slate-50 hover:text-slate-700 rounded-xl font-semibold transition"><i className="fa-solid fa-clock-rotate-left w-5"></i> Mis Horarios</a>
+                            <a href="#" className="flex items-center gap-3 px-4 py-3 text-slate-500 hover:bg-slate-50 hover:text-slate-700 rounded-xl font-semibold transition"><i className="fa-solid fa-book w-5"></i> Catálogo de Cursos</a>
+                            <a href="#" className="flex items-center gap-3 px-4 py-3 text-slate-500 hover:bg-slate-50 hover:text-slate-700 rounded-xl font-semibold transition"><i className="fa-solid fa-chart-simple w-5"></i> Estadísticas</a>
                         </nav>
                         
-                        <div className="w-full px-4 mt-auto">
-                            <a href="#" className="flex items-center gap-3 px-4 py-2.5 bg-slate-100 text-ceet-darkgreen hover:bg-slate-200 rounded-xl font-bold transition text-sm"><i className="fa-solid fa-gear w-5 text-center"></i> Ajustes</a>
+                        <div className="p-4 border-t border-slate-100">
+                            <a href="#" className="flex items-center gap-3 px-4 py-3 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-xl font-bold transition"><i className="fa-solid fa-gear w-5 text-center"></i> Ajustes</a>
                         </div>
                     </aside>
 
-                    {/* CONTENIDO PRINCIPAL (Derecha) */}
-                    <main className="flex-1 flex flex-col h-full bg-slate-50 overflow-y-auto scroll-clean relative">
+                    {/* CONTENIDO PRINCIPAL AZUL */}
+                    <main className="flex-1 flex flex-col h-full bg-[#002855] overflow-y-auto relative w-full">
                         
-                        {/* Header Superior idéntico */}
-                        <div className="bg-white px-8 py-5 border-b border-slate-200 shadow-sm flex items-center justify-between shrink-0">
-                            <div>
-                                <h2 className="text-xl font-black text-slate-800">Facultad de Ingeniería Química</h2>
-                                <p className="text-sm font-bold text-ceet-green mt-1 flex items-center gap-2">
-                                    CEET - Planificador de Horarios 2026-B 
-                                    <span className="bg-ceet-green/10 text-ceet-darkgreen px-2 py-0.5 rounded text-[10px] uppercase tracking-wide italic">"De estudiantes para estudiantes"</span>
-                                </p>
+                        {/* Header Blanco Superior con el Menú Hamburguesa */}
+                        <header className="bg-white rounded-b-xl mx-2 md:mx-6 mt-0 px-4 md:px-6 py-4 shadow-md flex items-center justify-between shrink-0 z-30">
+                            <div className="flex items-center gap-3">
+                                <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="text-slate-500 hover:text-unac p-2 rounded-lg hover:bg-slate-100 transition-colors shadow-sm border border-slate-200">
+                                    <i className="fa-solid fa-bars text-lg"></i>
+                                </button>
+                                <div>
+                                    <h2 className="text-lg md:text-xl font-black text-slate-800">Facultad de Ingeniería Química</h2>
+                                    <p className="text-xs font-bold text-unac mt-0.5">CEET FIQ - Programación 2026-B</p>
+                                </div>
                             </div>
-                            <div className="w-10 h-10 rounded-full border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-50 cursor-pointer shadow-sm">
-                                <i className="fa-regular fa-bell"></i>
+                            <div className="hidden md:flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200">
+                                <i className="fa-solid fa-circle-user text-slate-400 text-lg"></i>
+                                <span className="text-xs font-bold text-slate-600">Estudiante</span>
+                            </div>
+                        </header>
+
+                        {/* ESTADÍSTICAS BARRAS (Fondo Blanco) */}
+                        <div className="mx-2 md:mx-6 mt-4 grid grid-cols-2 md:grid-cols-4 gap-4 shrink-0">
+                            <div className="bg-white rounded-xl p-4 shadow-md flex items-center gap-4">
+                                <div className="w-10 h-10 rounded-full bg-emerald-50 text-emerald-500 flex items-center justify-center text-lg border border-emerald-100"><i className="fa-solid fa-award"></i></div>
+                                <div><p className="text-xl font-black text-slate-800">{totalCreditos} <span className="text-[10px] font-medium text-slate-400">/ 26 máx.</span></p><p className="text-[9px] text-slate-500 font-bold uppercase">Créditos totales</p></div>
+                            </div>
+                            <div className="bg-white rounded-xl p-4 shadow-md flex items-center gap-4">
+                                <div className="w-10 h-10 rounded-full bg-blue-50 text-blue-500 flex items-center justify-center text-lg border border-blue-100"><i className="fa-solid fa-book-open"></i></div>
+                                <div><p className="text-xl font-black text-slate-800">{new Set(seccionesAgregadas.map(s=>s.cursoId)).size}</p><p className="text-[9px] text-slate-500 font-bold uppercase">Cursos matriculados</p></div>
+                            </div>
+                            <div className="bg-white rounded-xl p-4 shadow-md flex items-center gap-4">
+                                <div className={`w-10 h-10 rounded-full border flex items-center justify-center text-lg ${crucesCount > 0 ? 'bg-red-50 border-red-200 text-red-500' : 'bg-emerald-50 border-emerald-100 text-emerald-500'}`}><i className="fa-solid fa-check-double"></i></div>
+                                <div><p className={`text-xl font-black ${crucesCount > 0 ? 'text-red-600' : 'text-slate-800'}`}>{crucesCount}</p><p className="text-[9px] text-slate-500 font-bold uppercase">Cruces de horario</p></div>
+                            </div>
+                            <div className="bg-white rounded-xl p-4 shadow-md flex items-center gap-4">
+                                <div className="w-10 h-10 rounded-full bg-orange-50 text-orange-500 flex items-center justify-center text-lg border border-orange-100"><i className="fa-regular fa-clock"></i></div>
+                                <div><p className="text-xl font-black text-slate-800">-- h</p><p className="text-[9px] text-slate-500 font-bold uppercase">Horas semanales</p></div>
                             </div>
                         </div>
 
-                        {/* ESTADÍSTICAS SUPERIORES (4 Tarjetas idénticas) */}
-                        <div className="px-8 py-5 grid grid-cols-2 md:grid-cols-4 gap-4 shrink-0">
-                            <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm flex items-center gap-4">
-                                <div className="w-10 h-10 rounded-full bg-ceet-green/10 text-ceet-green flex items-center justify-center text-lg"><i className="fa-solid fa-medal"></i></div>
-                                <div><p className="text-2xl font-black text-slate-800">{totalCreditos} <span className="text-xs text-slate-400 font-medium">/ 26 máx.</span></p><p className="text-[10px] text-slate-500 font-bold uppercase">Créditos totales</p></div>
-                            </div>
-                            <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm flex items-center gap-4">
-                                <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-lg"><i className="fa-solid fa-book-open"></i></div>
-                                <div><p className="text-2xl font-black text-slate-800">{new Set(seccionesAgregadas.map(s=>s.cursoId)).size}</p><p className="text-[10px] text-slate-500 font-bold uppercase">Cursos matriculados</p></div>
-                            </div>
-                            <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm flex items-center gap-4">
-                                <div className={`w-10 h-10 rounded-full flex items-center justify-center text-lg ${crucesCount > 0 ? 'bg-red-100 text-red-600' : 'bg-emerald-100 text-emerald-600'}`}><i className="fa-solid fa-check-double"></i></div>
-                                <div><p className={`text-2xl font-black ${crucesCount > 0 ? 'text-red-600' : 'text-slate-800'}`}>{crucesCount}</p><p className="text-[10px] text-slate-500 font-bold uppercase">Cruces de horario</p></div>
-                            </div>
-                            <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm flex items-center gap-4">
-                                <div className="w-10 h-10 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center text-lg"><i className="fa-regular fa-clock"></i></div>
-                                <div><p className="text-2xl font-black text-slate-800">-- h</p><p className="text-[10px] text-slate-500 font-bold uppercase">Horas semanales</p></div>
-                            </div>
-                        </div>
-
-                        {/* ÁREA DE TRABAJO (Catálogo + Calendario) */}
-                        <div className="px-8 flex items-start gap-6 mb-8">
+                        {/* ÁREA DE TRABAJO */}
+                        <div className="px-2 md:px-6 pt-6 flex flex-col lg:flex-row items-start gap-6 pb-10">
                             
-                            {/* CATÁLOGO (Izquierda) */}
-                            <div className="w-1/3 min-w-[340px] max-w-[420px] bg-white rounded-2xl border border-slate-200 flex flex-col shadow-sm" style={{height: "800px"}}>
+                            {/* CATÁLOGO EXACTO A LA FOTO */}
+                            <div className="w-full lg:w-[350px] shrink-0 bg-white rounded-2xl flex flex-col shadow-lg" style={{height: "750px"}}>
                                 <div className="p-5 border-b border-slate-100">
                                     <h2 className="font-black text-lg text-slate-800 mb-4">Catálogo de Cursos</h2>
                                     <div className="space-y-3">
                                         <div className="relative">
-                                            <i className="fa-solid fa-magnifying-glass absolute left-3 top-3 text-slate-400 text-sm"></i>
-                                            <input type="text" placeholder="Buscar curso, código o docente... (/)" className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium focus:outline-none focus:border-ceet-green focus:bg-white transition-all" value={busqueda} onChange={(e) => setBusqueda(e.target.value)} />
+                                            <i className="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-400 text-sm"></i>
+                                            <input type="text" placeholder="Buscar curso, código o docente... (/)" className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium focus:outline-none focus:bg-white transition-all" value={busqueda} onChange={(e) => setBusqueda(e.target.value)} />
                                         </div>
-                                        <select className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-bold text-slate-600 focus:outline-none focus:border-ceet-green focus:bg-white cursor-pointer" value={filtroCiclo} onChange={(e) => setFiltroCiclo(e.target.value)}>
+                                        <select className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-bold text-slate-600 focus:outline-none focus:bg-white cursor-pointer" value={filtroCiclo} onChange={(e) => setFiltroCiclo(e.target.value)}>
                                             <option value="Todos">Todos los ciclos</option>
                                             <option value="I">CICLO I</option><option value="II">CICLO II</option><option value="III">CICLO III</option><option value="IV">CICLO IV</option><option value="V">CICLO V</option><option value="VI">CICLO VI</option><option value="VII">CICLO VII</option><option value="VIII">CICLO VIII</option><option value="IX">CICLO IX</option><option value="X">CICLO X</option>
                                         </select>
                                     </div>
                                 </div>
                                 
-                                <div className="flex-1 overflow-y-auto scroll-clean p-4 bg-white">
-                                    {cursosFiltrados.length === 0 ? (
+                                <div className="flex-1 overflow-y-auto scroll-clean p-4">
+                                    {Object.keys(cursosPorCiclo).length === 0 ? (
                                         <div className="text-center p-8 text-slate-400"><p className="font-medium text-sm">No se encontraron cursos</p></div>
                                     ) : (
-                                        cursosFiltrados.map(curso => (
-                                            <div key={curso.id} className="mb-6">
-                                                {/* Header del Curso */}
-                                                <div className="flex justify-between items-center mb-2">
-                                                    <span className="font-black text-xs text-slate-700 tracking-wider">CICLO {curso.ciclo}</span>
-                                                    <span className="text-[10px] text-slate-400 font-bold">{Object.keys(curso.seccionesBase).length} opciones <i className="fa-solid fa-chevron-up ml-1"></i></span>
+                                        Object.keys(cursosPorCiclo).map(cicloKey => (
+                                            <div key={cicloKey} className="mb-6">
+                                                {/* Header del Ciclo */}
+                                                <div className="flex justify-between items-center mb-3">
+                                                    <span className="font-black text-[11px] text-slate-700 tracking-wider">CICLO {cicloKey}</span>
+                                                    <span className="text-[10px] text-slate-400 font-bold">{cursosPorCiclo[cicloKey].length} cursos <i className="fa-solid fa-chevron-up ml-1"></i></span>
                                                 </div>
                                                 
-                                                <div className="bg-white border border-slate-200 rounded-xl overflow-hidden relative">
-                                                    {/* Línea lateral de color */}
-                                                    <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-blue-600"></div>
-                                                    
-                                                    <div className="p-4 pl-5 border-b border-slate-100">
-                                                        <h3 className="font-black text-xs uppercase text-slate-800 leading-tight mb-1">{curso.nombre}</h3>
-                                                        <p className="text-[10px] text-slate-500 font-bold"><span className="bg-ceet-green/10 text-ceet-green px-1.5 py-0.5 rounded mr-1">C{curso.ciclo}</span> • {curso.creditos} Créditos - plan 2026</p>
-                                                    </div>
-                                                    
-                                                    <div className="p-3 pl-4 space-y-3 bg-slate-50/30">
-                                                        {Object.values(curso.seccionesBase).map(base => {
-                                                            const hasTP = base.tp.length > 0;
-                                                            const labs = Object.keys(base.labs);
-                                                            const tpID = `${curso.id}_${base.seccion}_TP`;
-                                                            const isTPAdded = seccionesAgregadas.some(s => s.id === tpID);
+                                                {/* Cursos del ciclo */}
+                                                {cursosPorCiclo[cicloKey].map((curso, idx) => {
+                                                    const bColor = borderColors[idx % borderColors.length];
+                                                    return (
+                                                        <div key={curso.id} className="mb-4 bg-white border border-slate-200 rounded-xl flex flex-col overflow-hidden relative shadow-sm">
+                                                            {/* Barra lateral de color */}
+                                                            <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${bColor}`}></div>
+                                                            
+                                                            <div className="p-4 pl-5">
+                                                                <div className="flex justify-between items-start mb-2">
+                                                                    <h3 className="font-black text-xs uppercase text-slate-800 leading-tight w-3/4 pr-2">{curso.nombre}</h3>
+                                                                    <span className="bg-slate-100 text-slate-600 text-[9px] font-bold px-1.5 py-0.5 rounded whitespace-nowrap">{Object.keys(curso.seccionesBase).length} secciones</span>
+                                                                </div>
+                                                                <div className="flex items-center gap-1.5 mb-3">
+                                                                    <span className="bg-emerald-50 text-emerald-600 border border-emerald-100 text-[8px] font-black px-1.5 py-0.5 rounded uppercase">{curso.codigo}</span>
+                                                                    <span className="text-[9px] text-slate-500 font-bold">• {curso.creditos} Créditos - plan 2026</span>
+                                                                </div>
+                                                                
+                                                                {/* SECCIONES EXACTAS AL DISEÑO */}
+                                                                <div className="space-y-3">
+                                                                    {Object.values(curso.seccionesBase).map(base => {
+                                                                        const hasTP = base.tp.length > 0;
+                                                                        const labs = Object.keys(base.labs);
+                                                                        const tpID = `${curso.id}_${base.seccion}_TP`;
+                                                                        const isTPAdded = seccionesAgregadas.some(s => s.id === tpID);
 
-                                                            return (
-                                                                <div key={base.id} className="space-y-3">
-                                                                    
-                                                                    {hasTP && (
-                                                                        <div className={`border rounded-xl p-3 bg-white transition-all ${isTPAdded ? 'border-blue-400 shadow-md ring-1 ring-blue-400/50' : 'border-slate-200 hover:border-slate-300'}`}>
-                                                                            <div className="flex justify-between items-center mb-3">
-                                                                                <div className="flex items-center gap-2">
-                                                                                    <h4 className="font-black text-xs text-slate-700 bg-slate-100 px-2 py-1 rounded">SECCIÓN {base.seccion} (T/P)</h4>
-                                                                                </div>
-                                                                                <button onClick={() => toggleSeccion(curso, tpID, base.seccion, base.tp, 'TP')} className={`w-7 h-7 rounded-md flex items-center justify-center text-xs transition-all ${isTPAdded ? 'bg-blue-600 text-white shadow-md' : 'bg-slate-100 text-slate-500 hover:bg-blue-600 hover:text-white'}`}>
-                                                                                    <i className={`fa-solid ${isTPAdded ? 'fa-minus' : 'fa-plus'}`}></i>
-                                                                                </button>
-                                                                            </div>
-                                                                            
-                                                                            <div className="space-y-2">
-                                                                                {base.tp.map((h, i) => (
-                                                                                    <div key={i} className="flex justify-between items-center text-[10px]">
-                                                                                        <span className="font-black text-slate-700 w-6">{h.dia}</span>
-                                                                                        <span className="text-slate-500 font-semibold">{h.inicio} a {h.fin}</span>
-                                                                                        <span className="font-black bg-slate-100 px-1.5 py-0.5 rounded text-slate-600">{h.aula}</span>
-                                                                                        <span className="text-[9px] font-bold text-slate-400 w-24 truncate text-right" title={h.docente}>{h.docente.split(' ')[0]} {h.docente.split(' ')[1]}</span>
-                                                                                    </div>
-                                                                                ))}
-                                                                            </div>
-                                                                        </div>
-                                                                    )}
+                                                                        // Profesor principal y cupos (se saca del primer elemento para resumen)
+                                                                        const docentePrincipal = hasTP ? base.tp[0].docente : (labs.length > 0 ? base.labs[labs[0]][0].docente : "Profesor");
+                                                                        const cupos = hasTP ? base.tp[0].cupos : (labs.length > 0 ? base.labs[labs[0]][0].cupos : "40");
 
-                                                                    {labs.length > 0 && (
-                                                                        <div className="pl-2 border-l-2 border-slate-200 space-y-2">
-                                                                            {labs.map(labSec => {
-                                                                                const labHorarios = base.labs[labSec];
-                                                                                const labID = `${curso.id}_${labSec}_LAB`;
-                                                                                const isLabAdded = seccionesAgregadas.some(s => s.id === labID);
-
-                                                                                return (
-                                                                                    <div key={labSec} className={`border rounded-xl p-2.5 bg-white transition-all ${isLabAdded ? 'border-purple-400 shadow-sm ring-1 ring-purple-400/50' : 'border-slate-200'}`}>
-                                                                                        <div className="flex justify-between items-center mb-2">
-                                                                                            <h4 className="font-black text-[11px] text-purple-700 bg-purple-50 px-2 py-0.5 rounded">SEC {labSec} LAB</h4>
-                                                                                            <button onClick={() => toggleSeccion(curso, labID, labSec, labHorarios, 'LAB')} className={`w-6 h-6 rounded-md flex items-center justify-center text-[10px] transition-all ${isLabAdded ? 'bg-purple-600 text-white' : 'bg-slate-100 text-slate-500 hover:bg-purple-600 hover:text-white'}`}>
-                                                                                                <i className={`fa-solid ${isLabAdded ? 'fa-minus' : 'fa-plus'}`}></i>
+                                                                        return (
+                                                                            <div key={base.id} className="space-y-2">
+                                                                                {/* TEORÍA / PRÁCTICA */}
+                                                                                {hasTP && (
+                                                                                    <div className={`border rounded-xl p-3 bg-white transition-all ${isTPAdded ? 'border-unac shadow-md ring-1 ring-unac/20 bg-blue-50/20' : 'border-slate-200'}`}>
+                                                                                        <div className="flex justify-between items-center mb-3">
+                                                                                            <span className="bg-slate-100 text-slate-700 text-[10px] font-bold px-2 py-0.5 rounded">SECCIÓN {base.seccion}</span>
+                                                                                            <button onClick={() => toggleSeccion(curso, tpID, base.seccion, base.tp, 'TP')} className={`w-6 h-6 rounded-md flex items-center justify-center transition-colors border ${isTPAdded ? 'bg-red-50 border-red-200 text-red-500' : 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-600'}`}>
+                                                                                                <i className={`fa-solid ${isTPAdded ? 'fa-minus text-[10px]' : 'fa-plus text-[10px]'}`}></i>
                                                                                             </button>
                                                                                         </div>
+                                                                                        
+                                                                                        <div className="flex items-center justify-between mb-3">
+                                                                                            <span className="text-[10px] font-bold text-slate-700 truncate max-w-[130px]" title={docentePrincipal}>{docentePrincipal}</span>
+                                                                                            <div className="flex items-center gap-1 text-[9px] text-slate-500 font-bold">
+                                                                                                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
+                                                                                                Vacantes: {cupos}
+                                                                                            </div>
+                                                                                        </div>
+                                                                                        
                                                                                         <div className="space-y-1.5">
-                                                                                            {labHorarios.map((h, i) => (
-                                                                                                <div key={i} className="flex justify-between items-center text-[10px]">
-                                                                                                    <span className="font-black text-slate-700 w-6">{h.dia}</span>
-                                                                                                    <span className="text-slate-500 font-semibold">{h.inicio} a {h.fin}</span>
-                                                                                                    <span className="font-black bg-purple-50 px-1.5 py-0.5 rounded text-purple-700">{h.aula}</span>
+                                                                                            {base.tp.map((h, i) => (
+                                                                                                <div key={i} className="flex items-center justify-between text-[10px]">
+                                                                                                    <span className="font-black text-slate-700 w-7">{h.dia}</span>
+                                                                                                    <span className="text-slate-500 font-medium">{h.inicio} a {h.fin}</span>
+                                                                                                    <span className="bg-slate-100 border border-slate-200 text-slate-600 font-bold px-1.5 py-0.5 rounded">{h.aula}</span>
                                                                                                 </div>
                                                                                             ))}
                                                                                         </div>
                                                                                     </div>
-                                                                                )
-                                                                            })}
-                                                                        </div>
-                                                                    )}
+                                                                                )}
+
+                                                                                {/* LABORATORIOS ANIDADOS */}
+                                                                                {labs.length > 0 && (
+                                                                                    <div className="pl-2 border-l-2 border-slate-200 space-y-2 mt-2">
+                                                                                        {labs.map(labSec => {
+                                                                                            const labHorarios = base.labs[labSec];
+                                                                                            const labID = `${curso.id}_${labSec}_LAB`;
+                                                                                            const isLabAdded = seccionesAgregadas.some(s => s.id === labID);
+                                                                                            const docLab = labHorarios[0].docente;
+                                                                                            const cupLab = labHorarios[0].cupos;
+
+                                                                                            return (
+                                                                                                <div key={labSec} className={`border rounded-xl p-2.5 bg-white transition-all ${isLabAdded ? 'border-unac shadow-sm ring-1 ring-unac/20 bg-blue-50/20' : 'border-slate-200'}`}>
+                                                                                                    <div className="flex justify-between items-center mb-2">
+                                                                                                        <span className="bg-slate-100 text-slate-700 text-[9px] font-bold px-1.5 py-0.5 rounded">SECCIÓN {labSec} (LAB)</span>
+                                                                                                        <button onClick={() => toggleSeccion(curso, labID, labSec, labHorarios, 'LAB')} className={`w-5 h-5 rounded-md flex items-center justify-center transition-colors border ${isLabAdded ? 'bg-red-50 border-red-200 text-red-500' : 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-600'}`}>
+                                                                                                            <i className={`fa-solid ${isLabAdded ? 'fa-minus text-[9px]' : 'fa-plus text-[9px]'}`}></i>
+                                                                                                        </button>
+                                                                                                    </div>
+                                                                                                    <div className="flex items-center justify-between mb-2">
+                                                                                                        <span className="text-[9px] font-bold text-slate-700 truncate max-w-[120px]" title={docLab}>{docLab}</span>
+                                                                                                        <div className="flex items-center gap-1 text-[8px] text-slate-500 font-bold">
+                                                                                                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
+                                                                                                            Vacantes: {cupLab}
+                                                                                                        </div>
+                                                                                                    </div>
+                                                                                                    <div className="space-y-1">
+                                                                                                        {labHorarios.map((h, i) => (
+                                                                                                            <div key={i} className="flex justify-between items-center text-[9px]">
+                                                                                                                <span className="font-black text-slate-700 w-6">{h.dia}</span>
+                                                                                                                <span className="text-slate-500 font-medium">{h.inicio} a {h.fin}</span>
+                                                                                                                <span className="bg-slate-100 border border-slate-200 text-slate-600 font-bold px-1 rounded">{h.aula}</span>
+                                                                                                            </div>
+                                                                                                        ))}
+                                                                                                    </div>
+                                                                                                </div>
+                                                                                            )
+                                                                                        })}
+                                                                                    </div>
+                                                                                )}
+                                                                            </div>
+                                                                        )
+                                                                    })}
                                                                 </div>
-                                                            )
-                                                        })}
-                                                    </div>
-                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    )
+                                                })}
                                             </div>
                                         ))
                                     )}
                                 </div>
                             </div>
 
-                            {/* CALENDARIO (Derecha) */}
-                            <div className="flex-1 bg-white rounded-2xl border border-slate-200 flex flex-col shadow-sm overflow-hidden relative" style={{height: "800px"}}>
-                                {/* Cabecera del Calendario */}
-                                <div className="flex justify-between items-center px-6 py-4 border-b border-slate-100 bg-white z-20 shadow-sm">
-                                    <h2 className="font-black text-slate-800 text-lg flex items-center gap-2">
-                                        <i className="fa-regular fa-calendar-check text-ceet-green"></i> Mi Horario <span className="bg-slate-100 text-slate-500 text-xs px-2 py-1 rounded ml-2 font-bold">Horario Semanal</span>
+                            {/* CALENDARIO Y EXPORTAR (Derecha) */}
+                            <div className="flex-1 w-full bg-white rounded-2xl flex flex-col shadow-lg overflow-hidden relative" style={{height: "750px"}}>
+                                {/* Cabecera */}
+                                <div className="flex justify-between items-center px-4 md:px-6 py-4 border-b border-slate-100 z-20">
+                                    <h2 className="font-black text-slate-800 text-base md:text-lg flex items-center gap-2">
+                                        <i className="fa-regular fa-calendar-days text-slate-400"></i> Mi Horario <span className="bg-slate-100 text-slate-500 text-[10px] px-2 py-1 rounded ml-1 font-bold border border-slate-200">Horario Semanal</span>
                                     </h2>
                                     <div className="flex items-center gap-2">
-                                        <button onClick={limpiarHorario} className="text-slate-400 hover:text-red-500 bg-slate-50 hover:bg-red-50 px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-200 transition-all" title="Limpiar Horario">
-                                            <i className="fa-solid fa-trash-can mr-1"></i> Limpiar
+                                        <button onClick={limpiarHorario} className="text-slate-400 hover:text-red-500 bg-slate-50 hover:bg-slate-100 p-2 rounded-lg text-sm border border-slate-200 transition-all" title="Limpiar Horario">
+                                            <i className="fa-solid fa-rotate-right"></i>
                                         </button>
-                                        <button onClick={exportarCalendario} className="text-white bg-ceet-green hover:bg-ceet-darkgreen px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm transition-all" title="Descargar como Imagen">
-                                            <i className="fa-solid fa-download mr-1"></i> Exportar
-                                        </button>
+                                        
+                                        <div className="relative">
+                                            <button onClick={() => setShowExportMenu(!showExportMenu)} className="bg-[#5c4cfc] hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-xs font-bold shadow-sm transition-all flex items-center gap-2">
+                                                <i className="fa-solid fa-download"></i> <span className="hidden md:inline">Exportar</span>
+                                            </button>
+                                            {showExportMenu && (
+                                                <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-xl border border-slate-200 z-50 overflow-hidden py-1">
+                                                    <button onClick={exportarPNG} className="w-full text-left px-4 py-3 text-xs font-bold text-slate-700 hover:bg-slate-50 border-b border-slate-100 flex items-center gap-2">
+                                                        <i className="fa-regular fa-image text-[#5c4cfc] text-sm"></i> Como Imagen PNG
+                                                    </button>
+                                                    <button onClick={exportarPDF} className="w-full text-left px-4 py-3 text-xs font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-2">
+                                                        <i className="fa-regular fa-file-pdf text-red-500 text-sm"></i> Como Archivo PDF
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
 
-                                {/* Grilla del Calendario (Ref asignada para exportar) */}
-                                <div className="flex flex-col flex-1 relative bg-white" ref={calendarRef} id="calendario-exportar">
-                                    {/* Días Top */}
-                                    <div className="flex border-b border-slate-200 bg-slate-50 z-10 sticky top-0">
-                                        <div className="w-16 border-r border-slate-200 shrink-0 flex items-center justify-center font-bold text-xs text-slate-500">HORA</div>
-                                        {diasSemana.map(dia => (<div key={dia} className="flex-1 text-center py-3 font-black text-xs text-slate-800 uppercase tracking-widest border-r border-slate-200 last:border-0">{dia}</div>))}
-                                    </div>
+                                {/* Grilla del Calendario Exportable */}
+                                <div className="flex-1 overflow-auto relative bg-white scroll-clean w-full">
+                                    <div ref={calendarRef} className="relative bg-white min-w-[700px] lg:min-w-full" style={{ height: `${TOTAL_HORAS * 60 + 40}px` }}>
+                                        
+                                        {/* Días Top */}
+                                        <div className="flex border-b border-slate-200 bg-white sticky top-0 z-30">
+                                            <div className="w-14 border-r border-slate-200 shrink-0 flex items-center justify-center font-bold text-[10px] text-slate-800 bg-slate-50">HORA</div>
+                                            {diasSemana.map(dia => (<div key={dia} className="flex-1 text-center py-3 font-black text-xs text-slate-800 uppercase border-r border-slate-200 last:border-0">{dia}</div>))}
+                                        </div>
 
-                                    <div className="flex-1 overflow-y-auto scroll-clean relative bg-white">
                                         <div className="relative w-full" style={{ height: `${TOTAL_HORAS * 60}px` }}>
                                             <div className="absolute inset-0 flex">
-                                                <div className="w-16 shrink-0 border-r border-slate-200 bg-slate-50 z-10"></div>
+                                                <div className="w-14 shrink-0 border-r border-slate-200 bg-white z-10"></div>
                                                 {diasSemana.map((_, i) => (<div key={i} className="flex-1 border-r border-slate-100 last:border-0 grid-bg"></div>))}
                                             </div>
                                             
-                                            <div className="absolute top-0 left-0 w-16 text-center text-[10px] text-slate-500 font-bold z-10">
+                                            <div className="absolute top-0 left-0 w-14 text-center text-[10px] text-slate-500 font-bold z-10">
                                                 {Array.from({length: TOTAL_HORAS + 1}).map((_, i) => (
-                                                    <div key={i} className="h-[60px] relative border-b border-slate-100">
-                                                        <span className="absolute -top-2 left-0 w-full bg-slate-50"><span className="text-slate-700 font-black">{String(i + HORA_INICIO).padStart(2, '0')}</span>:00</span>
+                                                    <div key={i} className="h-[60px] relative border-b border-slate-100 bg-white">
+                                                        <span className="absolute -top-2 left-0 w-full"><span className="text-slate-800 font-black">{String(i + HORA_INICIO).padStart(2, '0')}</span>:00</span>
                                                     </div>
                                                 ))}
                                             </div>
 
                                             {/* BLOQUES RENDERIZADOS */}
                                             {seccionesAgregadas.map((seccion, sIdx) => {
-                                                const colores = ['bg-blue-100 border-blue-500 text-blue-900', 'bg-emerald-100 border-emerald-500 text-emerald-900', 'bg-orange-100 border-orange-500 text-orange-900', 'bg-rose-100 border-rose-500 text-rose-900', 'bg-cyan-100 border-cyan-500 text-cyan-900'];
-                                                const color = seccion.itemType === 'LAB' ? 'bg-purple-100 border-purple-600 text-purple-900' : colores[sIdx % colores.length];
+                                                // Mismos colores suaves de la imagen
+                                                const colores = ['bg-[#eef2ff] border-[#3b82f6] text-[#1e3a8a]', 'bg-[#ecfdf5] border-[#10b981] text-[#064e3b]', 'bg-[#fffbeb] border-[#f59e0b] text-[#78350f]', 'bg-[#fdf2f8] border-[#f43f5e] text-[#831843]', 'bg-[#f0fdf4] border-[#059669] text-[#022c22]'];
+                                                const color = seccion.itemType === 'LAB' ? 'bg-[#faf5ff] border-[#a855f7] text-[#581c87]' : colores[sIdx % colores.length];
 
                                                 return seccion.horarios.map((horario, hIdx) => {
                                                     const colIndex = diasSemana.indexOf(horario.dia);
@@ -698,14 +804,14 @@ X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527
                                                     return (
                                                         <div 
                                                             key={`${sIdx}-${hIdx}`}
-                                                            className={`absolute class-block rounded-md border-l-[4px] p-2 flex flex-col text-[10px] overflow-hidden z-20 ${color}`}
-                                                            style={{ top: `${offsetTop}px`, height: `${duration}px`, width: `calc((100% - 64px) / 6 - 8px)`, left: `calc(64px + ((100% - 64px) / 6) * ${colIndex} + 4px)` }}
+                                                            className={`absolute class-block rounded border-l-[3px] p-2 flex flex-col text-[10px] overflow-hidden z-20 ${color}`}
+                                                            style={{ top: `${offsetTop}px`, height: `${duration}px`, width: `calc((100% - 56px) / 6 - 8px)`, left: `calc(56px + ((100% - 56px) / 6) * ${colIndex} + 4px)` }}
                                                         >
                                                             <span className="font-black leading-tight line-clamp-2 mb-1">{seccion.nombreCurso}</span>
-                                                            <span className="font-bold text-[9px] opacity-75 truncate mb-auto"><i className="fa-solid fa-user-tie"></i> {horario.docente.split(' ').slice(0,2).join(' ')}</span>
+                                                            <span className="font-bold text-[8px] opacity-80 truncate mb-auto"><i className="fa-solid fa-user-tie"></i> {horario.docente}</span>
                                                             
                                                             <div className="mt-1 flex flex-col gap-0.5">
-                                                                <span className="font-black bg-white/40 px-1 py-0.5 rounded w-max shadow-sm">S:{seccion.seccion} | {horario.tipo}-{horario.aula}</span>
+                                                                <span className="font-black bg-white/50 px-1 py-0.5 rounded shadow-sm w-max text-[9px]">S:{seccion.seccion} | {horario.tipo}-{horario.aula}</span>
                                                             </div>
                                                         </div>
                                                     )
@@ -715,12 +821,12 @@ X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527
                                     </div>
                                     
                                     {seccionesAgregadas.length === 0 && (
-                                        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none opacity-90 z-30 bg-white/60 backdrop-blur-[1px]">
+                                        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none opacity-90 z-30 bg-white/70">
                                             <div className="bg-white p-6 rounded-2xl shadow-xl border border-slate-100 flex flex-col items-center text-center max-w-sm">
-                                                <div className="w-16 h-16 bg-ceet-green/10 rounded-full flex items-center justify-center mb-4"><i className="fa-regular fa-calendar-check text-3xl text-ceet-green"></i></div>
-                                                <h3 className="text-xl font-black text-slate-800 mb-2">Arma tu horario ideal</h3>
-                                                <p className="text-sm text-slate-500 mb-4 font-medium">Haz clic en cualquier curso del catálogo a la izquierda para comenzar a armar tu horario semanal.</p>
-                                                <button className="bg-blue-600 text-white font-bold py-2 px-6 rounded-lg text-sm shadow-md pointer-events-auto"><i className="fa-solid fa-magnifying-glass mr-2"></i>Buscar cursos en el catálogo</button>
+                                                <div className="w-16 h-16 bg-emerald-50 rounded-full flex items-center justify-center mb-4"><i className="fa-regular fa-calendar-check text-3xl text-emerald-500"></i></div>
+                                                <h3 className="text-lg font-black text-slate-800 mb-2">Arma tu horario ideal</h3>
+                                                <p className="text-xs text-slate-500 mb-5 font-medium px-4">Haz clic en cualquier curso del catálogo a la izquierda para comenzar a armar tu horario semanal.</p>
+                                                <button className="bg-[#5c4cfc] text-white font-bold py-2.5 px-6 rounded-lg text-sm shadow-md pointer-events-auto"><i className="fa-solid fa-magnifying-glass mr-2"></i>Buscar cursos en el catálogo</button>
                                             </div>
                                         </div>
                                     )}
@@ -728,47 +834,8 @@ X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527
                             </div>
                         </div>
 
-                        {/* PANELES INFERIORES: Cursos Seleccionados y Horarios Guardados */}
-                        <div className="px-8 pb-8 flex gap-6 mt-4">
-                            <div className="flex-1 bg-white rounded-2xl border border-slate-200 p-6 shadow-sm min-h-[150px] flex flex-col">
-                                <h3 className="font-black text-slate-800 text-base mb-4 border-b border-slate-100 pb-2">Cursos Seleccionados</h3>
-                                {seccionesAgregadas.length === 0 ? (
-                                    <div className="flex-1 flex items-center justify-center text-sm font-medium text-slate-400 italic">Aún no has seleccionado ningún curso.</div>
-                                ) : (
-                                    <div className="flex flex-wrap gap-2">
-                                        {seccionesAgregadas.map(s => (
-                                            <span key={s.id} className="bg-slate-100 border border-slate-200 text-slate-700 text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-2">
-                                                {s.nombreCurso} ({s.seccion})
-                                                <i className="fa-solid fa-xmark text-slate-400 hover:text-red-500 cursor-pointer" onClick={() => setSeccionesAgregadas(seccionesAgregadas.filter(x => x.id !== s.id))}></i>
-                                            </span>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-                            <div className="flex-1 bg-white rounded-2xl border border-slate-200 p-6 shadow-sm min-h-[150px] flex flex-col">
-                                <h3 className="font-black text-slate-800 text-base mb-4 border-b border-slate-100 pb-2">Horarios Guardados</h3>
-                                <div className="flex-1 flex items-center justify-center text-sm font-medium text-slate-400 italic">
-                                    Aún no has guardado ningún horario.
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* FOOTER VERDE/CEET - Redes Sociales */}
-                        <div className="bg-ceet-darkgreen w-full py-8 border-t-4 border-gold mt-auto flex flex-col items-center">
-                            <h2 className="text-white font-black text-lg tracking-widest uppercase mb-1">Integración Estudiantil</h2>
-                            <p className="text-gold-light text-xs font-bold italic tracking-wider mb-6">"De estudiantes para estudiantes"</p>
-                            
-                            <p className="text-white font-bold text-sm mb-4">Síguenos en nuestras redes sociales</p>
-                            <div className="flex flex-wrap gap-4 justify-center">
-                                <a href="#" className="bg-white text-ceet-darkgreen hover:bg-slate-100 font-bold px-4 py-2 rounded-full text-xs flex items-center gap-2 shadow-lg transition-transform hover:scale-105"><i className="fa-brands fa-instagram text-lg text-pink-600"></i> @integracionestudiantil</a>
-                                <a href="#" className="bg-white text-ceet-darkgreen hover:bg-slate-100 font-bold px-4 py-2 rounded-full text-xs flex items-center gap-2 shadow-lg transition-transform hover:scale-105"><i className="fa-brands fa-facebook text-lg text-blue-600"></i> Facebook</a>
-                                <a href="#" className="bg-white text-ceet-darkgreen hover:bg-slate-100 font-bold px-4 py-2 rounded-full text-xs flex items-center gap-2 shadow-lg transition-transform hover:scale-105"><i className="fa-brands fa-tiktok text-lg text-black"></i> @integracion.estudiantil</a>
-                                <a href="#" className="bg-white text-ceet-darkgreen hover:bg-slate-100 font-bold px-4 py-2 rounded-full text-xs flex items-center gap-2 shadow-lg transition-transform hover:scale-105"><i className="fa-brands fa-whatsapp text-lg text-green-500"></i> Canal de WhatsApp</a>
-                            </div>
-                        </div>
-
-                        {/* FOOTER 3D GLOBE */}
-                        <div className="footer-dark w-full flex flex-col items-center justify-center">
+                        {/* FOOTER 3D GLOBE Y CRÉDITOS */}
+                        <div className="footer-container w-full mt-auto flex flex-col items-center justify-center shrink-0 shadow-[0_-10px_30px_rgba(0,0,0,0.5)]">
                             <div className="globe-container">
                                 <div className="globe">
                                     <div className="ring"></div><div className="ring"></div><div className="ring"></div>
@@ -776,8 +843,8 @@ X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527
                                     <div className="ring"></div>
                                 </div>
                             </div>
-                            <div className="creator-text">S I S T E M A  C R E A D O  P O R  S E B A S T I A N</div>
-                            <div className="copyright-text">© 2026 UNAC - CEET FIQ. TODOS LOS DERECHOS RESERVADOS.</div>
+                            <div className="creator-text">S I S T E M A &nbsp; C R E A D O &nbsp; P O R &nbsp; S E B A S T I A N</div>
+                            <div className="copyright-text">© 2026 UNAC - Movilidad Universitaria. Todos los derechos reservados.</div>
                         </div>
 
                     </main>
