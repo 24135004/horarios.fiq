@@ -50,7 +50,7 @@
         
         @keyframes popIn { 0% { transform: scale(0.95); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
         .class-block { animation: popIn 0.2s ease-out; box-shadow: 0 4px 10px rgba(0,0,0,0.08); transition: transform 0.2s ease; }
-        .class-block:hover { transform: translateY(-2px); box-shadow: 0 6px 15px rgba(0,0,0,0.12); z-index: 30; }
+        .class-block:hover { transform: translateY(-2px); box-shadow: 0 6px 15px rgba(0,0,0,0.12); z-index: 40 !important; }
         
         .dropdown-menu { transform-origin: top right; transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1); }
         .dropdown-open { opacity: 1; transform: scale(1); pointer-events: auto; }
@@ -522,7 +522,7 @@ X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527
             );
         };
 
-        // === MODAL DE VACIAR HORARIO (NUEVO) ===
+        // === MODAL DE VACIAR HORARIO ===
         const ClearModal = ({ isOpen, onClose, onConfirm }) => {
             if (!isOpen) return null;
             return (
@@ -563,7 +563,7 @@ X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527
             const [toast, setToast] = useState({ visible: false, message: '', type: 'success' });
             
             const [conflictModalData, setConflictModalData] = useState(null);
-            const [isClearModalOpen, setIsClearModalOpen] = useState(false); // ESTADO DEL NUEVO MODAL
+            const [isClearModalOpen, setIsClearModalOpen] = useState(false);
             
             const calendarRef = useRef(null);
             const hiddenExportRef = useRef(null);
@@ -730,7 +730,7 @@ X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527
                 showToast(`Sección ${sug.seccion} agregada sin cruces.`, 'success');
             };
 
-            // === LÓGICA VACIAR HORARIO (NUEVA) ===
+            // === LÓGICA VACIAR HORARIO ===
             const triggerLimpiarHorario = () => {
                 if(seccionesAgregadas.length > 0) {
                     setIsClearModalOpen(true);
@@ -849,11 +849,9 @@ X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527
 
             return (
                 <React.Fragment>
-                    {/* MODALES */}
                     <ConflictModal conflictData={conflictModalData} onClose={() => setConflictModalData(null)} onForceReplace={handleForceReplace} onSelectSuggestion={handleSelectSuggestion} />
                     <ClearModal isOpen={isClearModalOpen} onClose={() => setIsClearModalOpen(false)} onConfirm={confirmLimpiarHorario} />
 
-                    {/* TOAST NOTIFICATION */}
                     {toast.visible && (
                         <div className={`fixed bottom-6 right-6 px-5 py-3 rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.15)] flex items-center gap-4 z-[110] animate-[popIn_0.3s_ease-out] border-2 ${toast.type === 'error' ? 'bg-white border-red-500' : 'bg-white border-emerald-500'}`}>
                             <i className={`text-2xl ${toast.type === 'error' ? 'fa-solid fa-circle-exclamation text-red-500' : 'fa-solid fa-circle-check text-emerald-500'}`}></i>
@@ -1042,20 +1040,20 @@ X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527
                             </div>
                         </div>
 
+                        {/* PANEL DERECHO: CALENDARIO */}
                         <div className="flex-1 bg-white rounded-2xl shadow-sm border border-slate-200 flex flex-col min-h-[600px] lg:h-auto relative overflow-hidden">
                             
-                            <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-white z-20 flex-wrap gap-4">
+                            {/* === CORRECCIÓN AQUÍ: Agregado "relative z-[60]" al header para que el dropdown no quede detrás del calendario === */}
+                            <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-white relative z-[60] flex-wrap gap-4">
                                 <div className="flex items-center gap-3">
                                     <div className="w-8 h-8 rounded-lg bg-blue-50 text-brand-accent flex items-center justify-center"><i className="fa-regular fa-calendar-days"></i></div>
                                     <h2 className="font-black text-lg text-slate-800">Mi Horario</h2>
                                     <span className="bg-slate-50 text-slate-500 border border-slate-200 text-[10px] font-bold px-2 py-1 rounded-md ml-2 uppercase tracking-wider">Vista Semanal</span>
                                 </div>
                                 <div className="flex items-center gap-2 relative">
-                                    {/* CAMBIO AQUÍ: Llamamos a triggerLimpiarHorario en lugar del confirm nativo */}
                                     <button onClick={triggerLimpiarHorario} className="bg-white border border-red-200 text-red-500 hover:bg-red-50 px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 shadow-sm">
                                         <i className="fa-regular fa-trash-can"></i> Vaciar
                                     </button>
-                                    
                                     <button onClick={undoAction} disabled={historial.length === 0} className="bg-white border border-slate-200 text-slate-500 hover:bg-slate-50 px-3 py-2 rounded-xl text-sm transition flex items-center justify-center disabled:opacity-50 shadow-sm" title="Deshacer">
                                         <i className="fa-solid fa-rotate-left"></i>
                                     </button>
@@ -1065,7 +1063,7 @@ X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527
                                             <i className="fa-solid fa-cloud-arrow-down"></i> Exportar <i className="fa-solid fa-chevron-down text-[10px] ml-1"></i>
                                         </button>
                                         
-                                        <div className={`absolute right-0 mt-2 w-52 bg-white rounded-xl shadow-xl border border-slate-200 z-50 overflow-hidden dropdown-menu ${dropdownOpen ? 'dropdown-open' : 'dropdown-closed'}`}>
+                                        <div className={`absolute right-0 mt-2 w-52 bg-white rounded-xl shadow-xl border border-slate-200 z-[100] overflow-hidden dropdown-menu ${dropdownOpen ? 'dropdown-open' : 'dropdown-closed'}`}>
                                             <div className="bg-slate-50 px-4 py-2 border-b border-slate-100"><span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Formato de descarga</span></div>
                                             <div className="py-1">
                                                 <button onClick={exportarPNG} className="w-full text-left px-4 py-3 text-xs font-semibold text-slate-700 hover:bg-blue-50 hover:text-brand-accent flex items-center gap-3 transition">
