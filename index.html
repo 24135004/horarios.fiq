@@ -70,6 +70,10 @@
         
         .creator-text { font-weight: 900; letter-spacing: 0.2em; color: #3b82f6; text-shadow: 0 0 10px rgba(59,130,246,0.4); font-size: 0.75rem; text-align: center; margin-bottom: 2px; z-index: 10; position: relative; text-transform: uppercase;}
         .copyright-text { color: #94a3b8; font-size: 0.65rem; text-align: center; letter-spacing: 0.05em; z-index: 10; position: relative;}
+
+        /* Modal Overlay FadeIn */
+        @keyframes fadeInOverlay { from { opacity: 0; backdrop-filter: blur(0px); } to { opacity: 1; backdrop-filter: blur(4px); } }
+        .modal-bg { animation: fadeInOverlay 0.2s ease-out forwards; }
     </style>
 </head>
 <body class="flex flex-col w-full h-screen overflow-y-auto scroll-clean">
@@ -78,7 +82,7 @@
     <script type="text/babel">
         const { useState, useMemo, useRef, useEffect } = React;
 
-        // === DATOS DE LA TABLA ===
+        // === DATOS DE LA TABLA (COMPLETOS) ===
         const rawTableData = `I	ESTADO, SOCIEDAD, CULTURA Y DESARROLLO HUMANO - IEGH06 PLAN 2026 RODRIGUEZ TARANCO OSCAR JUAN - 2425 01Q Lun	08:00 a 10:30 FIQ1A03 PRESENCIAL T 90 Completado CALLAO
 I	ESTADO, SOCIEDAD, CULTURA Y DESARROLLO HUMANO - IEGH06 PLAN 2026 RODRIGUEZ TARANCO OSCAR JUAN - 2425 02Q Mar	10:30 a 13:00 FIQ1A03 PRESENCIAL T 90 Completado CALLAO
 I	MATEMÁTICA BÁSICA - IEGM02 PLAN 2026 REYNA SEGURA ANA MARIA - 1212 01Q Mar	08:00 a 10:30 FIQ3A06 PRESENCIAL T 40 Completado CALLAO
@@ -386,13 +390,89 @@ X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527
         const dbCursos = parseData();
         const borderColors = ['border-[#3b82f6]', 'border-[#0ea5e9]', 'border-[#6366f1]', 'border-[#8b5cf6]', 'border-[#2dd4bf]'];
 
+        // === COMPONENTE MODAL DE CRUCE ===
+        const ConflictModal = ({ conflictData, onClose, onForceReplace, onSelectSuggestion }) => {
+            if (!conflictData) return null;
+
+            const { curso, seccion, conflict, suggestions } = conflictData;
+
+            return (
+                <div className="fixed inset-0 bg-slate-900/70 z-[120] flex items-center justify-center p-4 modal-bg">
+                    <div className="bg-white rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl relative">
+                        {/* Botón Cerrar */}
+                        <button onClick={onClose} className="absolute top-5 right-5 w-8 h-8 rounded-full bg-red-100 text-red-500 hover:bg-red-500 hover:text-white flex items-center justify-center transition-colors">
+                            <i className="fa-solid fa-xmark"></i>
+                        </button>
+
+                        <div className="p-8 pb-6 flex flex-col items-center text-center">
+                            {/* Icono Principal */}
+                            <div className="w-16 h-16 bg-red-100 text-red-500 rounded-2xl flex items-center justify-center text-3xl mb-4 border-2 border-red-50">
+                                <i className="fa-solid fa-triangle-exclamation"></i>
+                            </div>
+                            
+                            <h3 className="text-xl font-black text-slate-800 mb-2">¡Cruce de Horario Detectado!</h3>
+                            <p className="text-sm text-slate-500 font-medium mb-6">La sección <strong className="text-red-500">{seccion}</strong> del curso <strong className="text-slate-700">{curso.nombre}</strong> genera un cruce.</p>
+
+                            {/* Detalle del Cruce */}
+                            <div className="w-full bg-red-50 border border-red-200 rounded-xl p-4 text-left mb-6">
+                                <p className="text-xs text-red-800 font-medium leading-relaxed">
+                                    <strong className="text-red-900">Detalle del cruce:</strong> El día <strong className="text-red-900">{conflict.dia}</strong> a las <strong className="text-red-900">{conflict.inicio} - {conflict.fin}</strong> se cruza a la misma hora con tu clase inscrita de <strong className="text-red-900">{conflict.oldCourseName}</strong>.
+                                </p>
+                            </div>
+
+                            {/* Sugerencias Inteligentes */}
+                            <div className="w-full bg-[#f0fdf4] border border-[#bbf7d0] rounded-xl p-4 text-left">
+                                <h4 className="text-xs font-bold text-[#166534] flex items-center gap-2 mb-3">
+                                    <i className="fa-solid fa-wand-magic-sparkles"></i> Sugerencia Inteligente de Secciones Libres
+                                </h4>
+                                
+                                {suggestions.length > 0 ? (
+                                    <>
+                                        <p className="text-[10px] text-[#15803d] mb-3">Las siguientes secciones de este curso están <strong>libres y no se cruzan</strong> con tu horario actual:</p>
+                                        <div className="space-y-2 max-h-32 overflow-y-auto scroll-clean pr-1">
+                                            {suggestions.map(sug => (
+                                                <div key={sug.id} className="bg-white border border-[#dcfce7] rounded-lg p-3 flex justify-between items-center shadow-sm">
+                                                    <div>
+                                                        <div className="font-bold text-[#166534] text-xs">Sección {sug.seccion}</div>
+                                                        <div className="text-[9px] text-[#15803d] uppercase mt-0.5 truncate w-[180px]">{sug.docente}</div>
+                                                    </div>
+                                                    <button onClick={() => onSelectSuggestion(sug)} className="bg-[#10b981] hover:bg-[#059669] text-white px-3 py-1.5 rounded-md text-[10px] font-bold transition flex items-center gap-1.5 shadow-sm">
+                                                        <i className="fa-regular fa-circle-check"></i> Seleccionar
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </>
+                                ) : (
+                                    <p className="text-[10px] text-[#15803d] bg-white p-3 rounded-lg border border-[#dcfce7]">Lo sentimos, no hay otras secciones disponibles para este curso que encajen en tu horario actual sin generar cruces.</p>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Botones de Acción (Footer del Modal) */}
+                        <div className="px-8 py-5 border-t border-slate-100 bg-slate-50 flex gap-3">
+                            <button onClick={onClose} className="flex-1 bg-white border border-slate-200 text-slate-600 hover:bg-slate-100 py-2.5 rounded-xl text-xs font-bold transition">
+                                Cancelar
+                            </button>
+                            <button onClick={onForceReplace} className="flex-1 bg-red-600 hover:bg-red-700 text-white py-2.5 rounded-xl text-xs font-bold transition shadow-sm">
+                                Reemplazar Curso
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
         const App = () => {
             const [seccionesAgregadas, setSeccionesAgregadas] = useState([]);
             const [historial, setHistorial] = useState([]);
             const [filtroCiclo, setFiltroCiclo] = useState('Todos');
             const [busqueda, setBusqueda] = useState('');
             const [dropdownOpen, setDropdownOpen] = useState(false);
-            const [toast, setToast] = useState({ visible: false, message: '', type: 'success' }); // Sistema de Alertas
+            const [toast, setToast] = useState({ visible: false, message: '', type: 'success' });
+            
+            // Estado para el modal de cruces
+            const [conflictModalData, setConflictModalData] = useState(null);
             
             const calendarRef = useRef(null);
             const hiddenExportRef = useRef(null);
@@ -473,24 +553,133 @@ X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527
                 }, {});
             }, [cursosFiltrados]);
 
-            const toggleSeccion = (curso, itemID, nombreSeccion, horariosArray, itemType) => {
-                setHistorial(prev => [...prev, seccionesAgregadas]); 
-                const isAdded = seccionesAgregadas.some(s => s.id === itemID);
-                let newArr;
-                if (isAdded) {
-                    newArr = seccionesAgregadas.filter(s => s.id !== itemID);
-                } else {
-                    const clean = seccionesAgregadas.filter(s => {
-                        if (s.cursoId !== curso.id) return true;
-                        return s.itemType !== itemType; 
-                    });
-                    newArr = [...clean, { 
-                        id: itemID, cursoId: curso.id, nombreCurso: curso.nombre, 
-                        seccion: nombreSeccion, horarios: horariosArray, itemType: itemType, creditos: curso.creditos, codigo: curso.codigo
-                    }];
+
+            // === LÓGICA DE DETECCIÓN DE CRUCES Y SUGERENCIAS ===
+            const checkConflict = (newHorarios, currentSchedule) => {
+                for (let nh of newHorarios) {
+                    const nStart = timeToMins(nh.inicio);
+                    const nEnd = timeToMins(nh.fin);
+                    for (let extSec of currentSchedule) {
+                        for (let eh of extSec.horarios) {
+                            if (nh.dia === eh.dia) {
+                                const eStart = timeToMins(eh.inicio);
+                                const eEnd = timeToMins(eh.fin);
+                                // Si se solapan los tiempos
+                                if (nStart < eEnd && nEnd > eStart) {
+                                    return {
+                                        dia: nh.dia,
+                                        inicio: nh.inicio,
+                                        fin: nh.fin,
+                                        oldCourseName: extSec.nombreCurso,
+                                        oldCourseId: extSec.id
+                                    };
+                                }
+                            }
+                        }
+                    }
                 }
-                setSeccionesAgregadas(newArr);
+                return null;
             };
+
+            const getSuggestions = (curso, currentSchedule, currentAddingSecId) => {
+                const suggestions = [];
+                Object.values(curso.seccionesBase).forEach(base => {
+                    if (base.tp.length > 0) {
+                        const tpID = `${curso.id}_${base.seccion}_TP`;
+                        if (tpID !== currentAddingSecId && !checkConflict(base.tp, currentSchedule)) {
+                            suggestions.push({ 
+                                id: tpID, 
+                                seccion: base.seccion, 
+                                horarios: base.tp, 
+                                itemType: 'TP', 
+                                docente: base.tp[0].docente 
+                            });
+                        }
+                    }
+                });
+                return suggestions;
+            };
+
+            // === FUNCIÓN PRINCIPAL DE AGREGAR/QUITAR CURSO ===
+            const toggleSeccion = (curso, itemID, nombreSeccion, horariosArray, itemType) => {
+                const isAdded = seccionesAgregadas.some(s => s.id === itemID);
+                
+                if (isAdded) {
+                    // Remover normal
+                    setHistorial(prev => [...prev, seccionesAgregadas]); 
+                    setSeccionesAgregadas(seccionesAgregadas.filter(s => s.id !== itemID));
+                } else {
+                    // Limpiar otras secciones del MISMO curso antes de verificar (no puedes tener 2 teorías del mismo curso)
+                    const tempSchedule = seccionesAgregadas.filter(s => !(s.cursoId === curso.id && s.itemType === itemType));
+                    
+                    // Verificar cruce con el horario temporal
+                    const conflict = checkConflict(horariosArray, tempSchedule);
+                    
+                    if (conflict) {
+                        // Si hay cruce, abrir modal con sugerencias
+                        const suggestions = getSuggestions(curso, tempSchedule, itemID);
+                        setConflictModalData({
+                            curso, 
+                            itemID, 
+                            seccion: nombreSeccion, 
+                            horariosArray, 
+                            itemType,
+                            conflict, 
+                            suggestions
+                        });
+                    } else {
+                        // Si no hay cruce, agregar directamente
+                        executeAddCourse(curso, itemID, nombreSeccion, horariosArray, itemType);
+                    }
+                }
+            };
+
+            const executeAddCourse = (curso, itemID, nombreSeccion, horariosArray, itemType, courseToRemoveId = null) => {
+                setHistorial(prev => [...prev, seccionesAgregadas]); 
+                let newSchedule = [...seccionesAgregadas];
+                
+                // Si viene de forzar reemplazo, quitar el que estorba
+                if (courseToRemoveId) {
+                    newSchedule = newSchedule.filter(s => s.id !== courseToRemoveId);
+                }
+
+                // Limpiar el mismo curso (ej. cambiar de sec 01 a 02)
+                newSchedule = newSchedule.filter(s => !(s.cursoId === curso.id && s.itemType === itemType));
+                
+                newSchedule.push({ 
+                    id: itemID, cursoId: curso.id, nombreCurso: curso.nombre, 
+                    seccion: nombreSeccion, horarios: horariosArray, itemType: itemType, creditos: curso.creditos, codigo: curso.codigo
+                });
+                
+                setSeccionesAgregadas(newSchedule);
+                setConflictModalData(null); // Cerrar modal si estaba abierto
+            };
+
+            // Acciones del Modal
+            const handleForceReplace = () => {
+                executeAddCourse(
+                    conflictModalData.curso, 
+                    conflictModalData.itemID, 
+                    conflictModalData.seccion, 
+                    conflictModalData.horariosArray, 
+                    conflictModalData.itemType,
+                    conflictModalData.conflict.oldCourseId // Le pasamos el ID del curso viejo para que lo elimine
+                );
+                showToast("Curso reemplazado forzosamente.", 'success');
+            };
+
+            const handleSelectSuggestion = (sug) => {
+                executeAddCourse(
+                    conflictModalData.curso, 
+                    sug.id, 
+                    sug.seccion, 
+                    sug.horarios, 
+                    sug.itemType
+                );
+                showToast(`Sección ${sug.seccion} agregada sin cruces.`, 'success');
+            };
+
+            // === FIN LÓGICA CRUCES ===
 
             const limpiarHorario = () => {
                 if(seccionesAgregadas.length > 0 && confirm("¿Vaciar todo el horario?")) {
@@ -510,7 +699,7 @@ X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527
             // === LÓGICA DE VALIDACIÓN ANTES DE EXPORTAR ===
             const validateExport = () => {
                 if (totalCreditos < MIN_CREDITOS) {
-                    showToast(`Error: Necesitas un mínimo de ${MIN_CREDITOS} créditos para exportar tu horario (Tienes ${totalCreditos}).`, 'error');
+                    showToast(`Error: Necesitas un mínimo de ${MIN_CREDITOS} créditos para exportar (Tienes ${totalCreditos}).`, 'error');
                     return false;
                 }
                 if (crucesCount > 0) {
@@ -521,10 +710,10 @@ X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527
                 return true;
             };
 
-            // === FUNCIONES DE EXPORTACIÓN PPREMIUM ===
+            // === FUNCIONES DE EXPORTACIÓN ===
             const exportarPNG = () => {
                 setDropdownOpen(false);
-                if (!validateExport()) return; // Valida antes de proceder
+                if (!validateExport()) return;
 
                 if(hiddenExportRef.current) {
                     hiddenExportRef.current.style.display = 'block';
@@ -540,7 +729,7 @@ X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527
 
             const exportarPDF = () => {
                 setDropdownOpen(false);
-                if (!validateExport()) return; // Valida antes de proceder
+                if (!validateExport()) return;
 
                 if(hiddenExportRef.current) {
                     hiddenExportRef.current.style.display = 'block';
@@ -559,7 +748,7 @@ X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527
 
             const exportarWord = () => {
                 setDropdownOpen(false);
-                if (!validateExport()) return; // Valida antes de proceder
+                if (!validateExport()) return;
 
                 let tableHtml = "<table border='1' style='width:100%; border-collapse: collapse; font-family: Arial, sans-serif; font-size: 11px;'>";
                 tableHtml += "<tr style='background-color:#1e40af; color:white;'><th>CURSO</th><th>SECCIÓN</th><th>DÍA</th><th>HORA</th><th>AULA</th><th>DOCENTE</th></tr>";
@@ -606,11 +795,19 @@ X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527
 
             return (
                 <React.Fragment>
+                    {/* === MODAL DE CONFLICTOS === */}
+                    <ConflictModal 
+                        conflictData={conflictModalData} 
+                        onClose={() => setConflictModalData(null)} 
+                        onForceReplace={handleForceReplace}
+                        onSelectSuggestion={handleSelectSuggestion}
+                    />
+
                     {/* === TOAST NOTIFICATION SYSTEM === */}
                     {toast.visible && (
-                        <div className={`fixed bottom-6 right-6 px-5 py-3 rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.1)] flex items-center gap-4 z-[110] animate-[popIn_0.3s_ease-out] border ${toast.type === 'error' ? 'bg-red-50 border-red-200' : 'bg-[#edfdf4] border-[#a7f3d0]'}`}>
-                            <i className={`text-xl ${toast.type === 'error' ? 'fa-solid fa-circle-exclamation text-red-500' : 'fa-regular fa-circle-check text-emerald-500'}`}></i>
-                            <div className={`text-sm font-bold ${toast.type === 'error' ? 'text-red-800' : 'text-slate-700'}`}>{toast.message}</div>
+                        <div className={`fixed bottom-6 right-6 px-5 py-3 rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.15)] flex items-center gap-4 z-[110] animate-[popIn_0.3s_ease-out] border-2 ${toast.type === 'error' ? 'bg-white border-red-500' : 'bg-white border-emerald-500'}`}>
+                            <i className={`text-2xl ${toast.type === 'error' ? 'fa-solid fa-circle-exclamation text-red-500' : 'fa-solid fa-circle-check text-emerald-500'}`}></i>
+                            <div className={`text-sm font-bold ${toast.type === 'error' ? 'text-red-600' : 'text-slate-700'}`}>{toast.message}</div>
                             <button onClick={() => setToast({visible: false})} className="text-slate-400 hover:text-slate-600 ml-2"><i className="fa-solid fa-xmark"></i></button>
                         </div>
                     )}
@@ -947,10 +1144,10 @@ X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527
 
                         {/* Detalle de Resumen Exportación */}
                         <div style={{display: 'flex', gap: '20px', marginBottom: '25px', position: 'relative', zIndex: '1'}}>
-                            <div style={{backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', padding: '12px 25px', borderRadius: '12px', fontWeight: '800', color: '#1e40af', fontSize: '16px', display: 'flex', alignItems: 'center', gap: '10px'}}>
+                            <div style={{backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', padding: '12px 25px', borderRadius: '12px', fontWeight: '800', color: '#166534', fontSize: '16px', display: 'flex', alignItems: 'center', gap: '10px'}}>
                                 <i className="fa-solid fa-award"></i> Total Créditos: {totalCreditos} / {MAX_CREDITOS}
                             </div>
-                            <div style={{backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', padding: '12px 25px', borderRadius: '12px', fontWeight: '800', color: '#475569', fontSize: '16px', display: 'flex', alignItems: 'center', gap: '10px'}}>
+                            <div style={{backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', padding: '12px 25px', borderRadius: '12px', fontWeight: '800', color: '#1e40af', fontSize: '16px', display: 'flex', alignItems: 'center', gap: '10px'}}>
                                 <i className="fa-solid fa-book-open"></i> Cursos Matriculados: {new Set(seccionesAgregadas.map(s=>s.cursoId)).size}
                             </div>
                         </div>
@@ -1016,7 +1213,7 @@ X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527
                             </div>
                         </div>
                         
-                        {/* Footer de Exportación (Sello de Autor) */}
+                        {/* Footer Exportación (Sello de Autor) */}
                         <div style={{marginTop: '30px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '2px solid #e2e8f0', paddingTop: '20px', position: 'relative', zIndex: '1'}}>
                             <p style={{margin: '0', fontSize: '14px', color: '#94a3b8', fontWeight: '600'}}>© 2026 UNAC - Todos los derechos reservados.</p>
                             <p style={{margin: '0', fontSize: '18px', color: '#3b82f6', fontWeight: '900', letterSpacing: '3px'}}>CREADO POR SEBASTIAN <i className="fa-solid fa-code" style={{marginLeft: '8px', color: '#60a5fa'}}></i></p>
