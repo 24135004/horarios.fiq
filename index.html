@@ -33,6 +33,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
     <style>
+        /* Código limpio y unificado */
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
         body { font-family: 'Inter', sans-serif; background-color: #002855; overflow: hidden; margin: 0; padding: 0;}
         
@@ -294,7 +295,6 @@ X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527
 X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527 02Q Lun	18:50 a 21:20 FIQ2A04 PRESENCIAL T 80 Completado CALLAO
 X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527 02Q Jue	16:20 a 18:50 FIQ2A04 PRESENCIAL P 80 Completado CALLAO`;
 
-        // === PROCESADOR DE DATOS INTACTO ===
         const parseData = () => {
             const lines = rawTableData.trim().split('\n');
             const courseMap = {};
@@ -311,7 +311,6 @@ X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527
                 if (planIndex === -1) return;
                 const cursoNombreCompleto = col2.substring(0, planIndex).trim();
                 
-                // Extraer el código del curso (Ej: IEGH06) y dejar el nombre limpio
                 const codeMatch = cursoNombreCompleto.match(/-\s*([A-Z0-9]+)$/);
                 const codigo = codeMatch ? codeMatch[1] : "FIQ";
                 const cursoNombre = cursoNombreCompleto.replace(/-\s*[A-Z0-9]+$/, '').trim();
@@ -387,7 +386,6 @@ X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527
         const dbCursos = parseData();
         const borderColors = ['bg-purple-600', 'bg-emerald-600', 'bg-blue-600', 'bg-orange-500', 'bg-pink-600', 'bg-cyan-600'];
 
-        // Helper Modal Component
         const ModalWrapper = ({ isOpen, onClose, title, icon, subtitle, children, footer, maxWidth="max-w-2xl" }) => {
             if (!isOpen) return null;
             return (
@@ -414,10 +412,9 @@ X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527
             );
         };
 
-        // === COMPONENTE REACT PRINCIPAL ===
         const App = () => {
             const [seccionesAgregadas, setSeccionesAgregadas] = useState([]);
-            const [historial, setHistorial] = useState([]); // Historial para el botón Deshacer
+            const [historial, setHistorial] = useState([]);
             const [filtroCiclo, setFiltroCiclo] = useState('Todos');
             const [busqueda, setBusqueda] = useState('');
             const [isSidebarOpen, setIsSidebarOpen] = useState(window.innerWidth >= 1024);
@@ -426,7 +423,6 @@ X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527
             
             const calendarRef = useRef(null);
 
-            // Responsive de la barra lateral
             useEffect(() => {
                 const handleResize = () => {
                     if (window.innerWidth >= 1024) setIsSidebarOpen(true);
@@ -447,7 +443,6 @@ X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527
                 return (h * 60) + m;
             };
 
-            // Cálculos Estadísticos Unificados
             const { totalCreditos, crucesCount, horasSemanales, horasLibres, dist } = useMemo(() => {
                 let creditos = 0;
                 let cruces = 0;
@@ -481,7 +476,6 @@ X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527
                     });
                 });
 
-                // Cruces
                 for(let i=0; i < bloques.length; i++){
                     for(let j=i+1; j < bloques.length; j++){
                         const b1 = bloques[i], b2 = bloques[j];
@@ -489,7 +483,6 @@ X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527
                     }
                 }
 
-                // Huecos
                 Object.values(diasMap).forEach(clases => {
                     clases.sort((a,b) => a.start - b.start);
                     for(let i=0; i<clases.length-1; i++){
@@ -527,7 +520,7 @@ X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527
             }, [cursosFiltrados]);
 
             const toggleSeccion = (curso, itemID, nombreSeccion, horariosArray, itemType) => {
-                setHistorial(prev => [...prev, seccionesAgregadas]); // Guardar paso previo para Deshacer
+                setHistorial(prev => [...prev, seccionesAgregadas]); 
 
                 const isAdded = seccionesAgregadas.some(s => s.id === itemID);
                 let newArr;
@@ -565,7 +558,6 @@ X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527
                 }
             };
 
-            // Exportación a PNG
             const exportarPNG = () => {
                 if(calendarRef.current) {
                     html2canvas(calendarRef.current, { scale: 2, backgroundColor: '#ffffff' }).then(canvas => {
@@ -579,7 +571,6 @@ X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527
                 }
             };
 
-            // Exportación a PDF
             const exportarPDF = () => {
                 if(calendarRef.current) {
                     html2canvas(calendarRef.current, { scale: 2, backgroundColor: '#ffffff' }).then(canvas => {
@@ -604,7 +595,6 @@ X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527
             return (
                 <div className="flex h-screen w-full relative">
                     
-                    {/* TOAST / NOTIFICACIONES FLOTANTES */}
                     {toast.visible && (
                         <div className="fixed bottom-6 right-6 bg-[#edfdf4] border border-[#a7f3d0] px-5 py-3 rounded-xl shadow-lg flex items-center gap-4 z-[110] animate-[popIn_0.3s_ease-out]">
                             <i className="fa-regular fa-circle-check text-lg text-emerald-500"></i>
@@ -613,9 +603,6 @@ X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527
                         </div>
                     )}
 
-                    {/* VENTANAS MODALES */}
-                    
-                    {/* Modal 1: Mis Horarios Guardados */}
                     <ModalWrapper isOpen={modals.misHorarios} onClose={() => setModals({...modals, misHorarios: false})} title="Mis Horarios Guardados" icon={<i className="fa-solid fa-folder-open text-[#5c4cfc]"></i>} subtitle="Carga o elimina tus distintas alternativas de horarios guardados previamente.">
                         <div className="border-2 border-dashed border-slate-200 bg-slate-50 rounded-2xl p-10 flex flex-col items-center justify-center text-center">
                             <i className="fa-regular fa-calendar text-4xl text-slate-300 mb-4"></i>
@@ -624,7 +611,6 @@ X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527
                         </div>
                     </ModalWrapper>
 
-                    {/* Modal 2: Estadísticas */}
                     <ModalWrapper isOpen={modals.estadisticas} onClose={() => setModals({...modals, estadisticas: false})} title="Estadísticas del Horario" icon={<i className="fa-solid fa-chart-column text-[#5c4cfc]"></i>} subtitle="Resumen de métricas de carga académica y distribución de tiempo.">
                         <div className="grid grid-cols-2 gap-4 mb-5">
                             <div className="bg-indigo-50/50 border border-indigo-100 p-4 rounded-xl">
@@ -654,7 +640,6 @@ X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527
                         </div>
                     </ModalWrapper>
 
-                    {/* Modal 3: Ajustes Avanzados */}
                     <ModalWrapper isOpen={modals.ajustes} onClose={() => setModals({...modals, ajustes: false})} title="Ajustes Avanzados del Sistema" icon={<i className="fa-solid fa-gear text-emerald-600"></i>} subtitle="Personaliza la visibilidad de la interfaz y gestiona los datos de horarios.">
                         <div className="space-y-6">
                             <div className="border border-slate-200 rounded-xl p-5 bg-white">
@@ -702,7 +687,6 @@ X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527
                         </div>
                     </ModalWrapper>
 
-                    {/* Modal 4: Galería de Exportación */}
                     <ModalWrapper isOpen={modals.galeria} onClose={() => setModals({...modals, galeria: false})} maxWidth="max-w-4xl" title="Galería de Diseños UNAC" icon={<i className="fa-solid fa-wand-magic-sparkles text-[#5c4cfc]"></i>} subtitle="Selecciona tu plantilla favorita y descárgala en formato PNG, PDF, SVG o Excel."
                         footer={
                             <div className="p-4 border-t border-slate-100 bg-slate-50 flex items-center justify-between flex-wrap gap-3 rounded-b-2xl">
@@ -759,15 +743,12 @@ X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527
                         </div>
                     </ModalWrapper>
 
-                    {/* Overlay móvil Sidebar */}
                     {isSidebarOpen && (
                         <div className="fixed inset-0 bg-black/50 z-40 lg:hidden" onClick={() => setIsSidebarOpen(false)}></div>
                     )}
 
-                    {/* BARRA LATERAL IZQUIERDA BLANCA - EXACTAMENTE COMO LA IMAGEN SOLICITADA */}
                     <aside className={`fixed lg:static top-0 left-0 h-full bg-white border-r border-slate-200 w-64 z-50 transform transition-transform duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0 lg:w-0 lg:hidden'} flex flex-col shrink-0 shadow-[4px_0_24px_rgba(0,0,0,0.02)]`}>
                         
-                        {/* Cabecera Sidebar (Logo Icono + Texto) */}
                         <div className="p-6 flex flex-col items-center relative border-b border-slate-100">
                             <button className="lg:hidden absolute top-4 right-4 text-slate-400 hover:text-slate-600" onClick={() => setIsSidebarOpen(false)}>
                                 <i className="fa-solid fa-xmark text-xl"></i>
@@ -780,7 +761,6 @@ X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527
                             <span className="text-[9px] italic text-[#006b5e] font-black mt-3 bg-[#e6fcf5] px-3 py-1.5 rounded-md text-center border border-[#bbf7d0] tracking-wide">"De estudiantes para estudiantes"</span>
                         </div>
 
-                        {/* Menú de Navegación Sidebar */}
                         <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto scroll-clean">
                             <a href="#" onClick={(e) => e.preventDefault()} className="flex items-center gap-3 px-4 py-3.5 bg-[#ecfdf5] text-[#006b5e] rounded-xl font-bold transition">
                                 <i className="fa-solid fa-calendar-days text-base w-5 text-center"></i> Planificador
@@ -796,7 +776,6 @@ X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527
                             </a>
                         </nav>
                         
-                        {/* Botón Inferior Sidebar */}
                         <div className="p-5 w-full mt-auto">
                             <a href="#" onClick={(e) => { e.preventDefault(); setModals({...modals, ajustes: true}); }} className="flex items-center gap-3 px-4 py-3 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-xl font-bold transition border border-slate-200 w-full justify-start">
                                 <i className="fa-solid fa-gear text-base w-5 text-center"></i> Ajustes
@@ -804,10 +783,8 @@ X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527
                         </div>
                     </aside>
 
-                    {/* CONTENIDO PRINCIPAL AZUL */}
                     <main className="flex-1 flex flex-col h-full bg-[#002855] overflow-y-auto relative w-full">
                         
-                        {/* Header Blanco Superior */}
                         <header className="bg-white rounded-b-xl mx-2 md:mx-6 mt-0 px-4 md:px-6 py-4 shadow-md flex items-center justify-between shrink-0 z-30">
                             <div className="flex items-center gap-3">
                                 <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="text-slate-500 hover:text-emerald-600 p-2 rounded-lg hover:bg-slate-100 transition-colors shadow-sm border border-slate-200">
@@ -823,7 +800,6 @@ X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527
                             </div>
                         </header>
 
-                        {/* ESTADÍSTICAS BARRAS (Fondo Blanco - 5 Elementos como en tu imagen) */}
                         <div className="mx-2 md:mx-6 mt-4 grid grid-cols-2 lg:grid-cols-5 gap-3 md:gap-4 shrink-0">
                             <div className="bg-white rounded-xl p-3 md:p-4 shadow-md flex items-center gap-3 border-b-2 border-emerald-500">
                                 <div className="w-8 h-8 rounded-full bg-emerald-50 text-emerald-500 flex items-center justify-center text-sm border border-emerald-100"><i className="fa-solid fa-award"></i></div>
@@ -847,10 +823,8 @@ X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527
                             </div>
                         </div>
 
-                        {/* ÁREA DE TRABAJO */}
                         <div className="px-2 md:px-6 pt-5 flex flex-col lg:flex-row items-start gap-5 pb-10">
                             
-                            {/* CATÁLOGO DE CURSOS */}
                             <div className="w-full lg:w-[350px] shrink-0 bg-white rounded-2xl flex flex-col shadow-lg" style={{height: "750px"}}>
                                 <div className="p-5 border-b border-slate-100">
                                     <h2 className="font-black text-lg text-slate-800 mb-4">Catálogo de Cursos</h2>
@@ -904,7 +878,6 @@ X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527
 
                                                                         return (
                                                                             <div key={base.id} className="space-y-2">
-                                                                                {/* TEORÍA / PRÁCTICA */}
                                                                                 {hasTP && (
                                                                                     <div className={`border rounded-xl p-3 bg-white transition-all ${isTPAdded ? 'border-emerald-500 shadow-md ring-1 ring-emerald-500/20 bg-emerald-50/10' : 'border-slate-200'}`}>
                                                                                         <div className="flex justify-between items-center mb-3">
@@ -933,7 +906,6 @@ X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527
                                                                                     </div>
                                                                                 )}
 
-                                                                                {/* LABORATORIOS ANIDADOS */}
                                                                                 {labs.length > 0 && (
                                                                                     <div className="pl-2 border-l-2 border-slate-200 space-y-2 mt-2">
                                                                                         {labs.map(labSec => {
@@ -985,10 +957,8 @@ X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527
                                 </div>
                             </div>
 
-                            {/* CALENDARIO Y EXPORTAR (Derecha) */}
                             <div className="flex-1 w-full bg-white rounded-2xl flex flex-col shadow-lg overflow-hidden relative" style={{height: "750px"}}>
                                 
-                                {/* BOTONES SUPERIORES DEL CALENDARIO */}
                                 <div className="flex justify-between items-center px-4 md:px-6 py-4 border-b border-slate-100 z-20 overflow-x-auto gap-4">
                                     <h2 className="font-black text-slate-800 text-base md:text-lg flex items-center gap-2 whitespace-nowrap">
                                         <i className="fa-regular fa-calendar-days text-slate-400"></i> Mi Horario <span className="bg-slate-100 text-slate-500 text-[10px] px-2 py-1 rounded ml-1 font-bold border border-slate-200">Horario Semanal</span>
@@ -1009,11 +979,9 @@ X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527
                                     </div>
                                 </div>
 
-                                {/* Grilla del Calendario Exportable */}
                                 <div className="flex-1 overflow-auto relative bg-white scroll-clean w-full">
                                     <div ref={calendarRef} className="relative bg-white min-w-[700px] lg:min-w-full" style={{ height: `${TOTAL_HORAS * 60 + 40}px` }}>
                                         
-                                        {/* Días Top */}
                                         <div className="flex border-b border-slate-200 bg-white sticky top-0 z-30">
                                             <div className="w-14 border-r border-slate-200 shrink-0 flex items-center justify-center font-bold text-[10px] text-slate-800 bg-slate-50">HORA</div>
                                             {diasSemana.map(dia => (<div key={dia} className="flex-1 text-center py-3 font-black text-xs text-slate-800 uppercase border-r border-slate-200 last:border-0">{dia}</div>))}
@@ -1033,9 +1001,7 @@ X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527
                                                 ))}
                                             </div>
 
-                                            {/* BLOQUES RENDERIZADOS SEGÚN TU IMAGEN */}
                                             {seccionesAgregadas.map((seccion, sIdx) => {
-                                                // Colores suaves para asemejarse al screenshot minimalista
                                                 const colores = ['bg-[#eef2ff] border-[#3b82f6] text-[#1e3a8a]', 'bg-[#ecfdf5] border-[#10b981] text-[#064e3b]', 'bg-[#fffbeb] border-[#f59e0b] text-[#78350f]', 'bg-[#fdf2f8] border-[#f43f5e] text-[#831843]', 'bg-[#f0fdf4] border-[#059669] text-[#022c22]'];
                                                 const color = seccion.itemType === 'LAB' ? 'bg-[#faf5ff] border-[#a855f7] text-[#581c87]' : colores[sIdx % colores.length];
 
@@ -1081,7 +1047,6 @@ X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527
                             </div>
                         </div>
 
-                        {/* FOOTER 3D GLOBE Y CRÉDITOS */}
                         <div className="footer-container w-full mt-auto flex flex-col items-center justify-center shrink-0 shadow-[0_-10px_30px_rgba(0,0,0,0.5)]">
                             <div className="globe-container">
                                 <div className="globe">
