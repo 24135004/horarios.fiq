@@ -797,12 +797,24 @@ X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527
                     const target = exportTemplateRef.current;
                     if (!target) throw new Error("No se encontró la plantilla de exportación.");
 
+                    // MODIFICACIÓN APLICADA: Forzar scroll a cero, remover márgenes y transformaciones al exportar para que no salga "descuadrado"
                     const canvas = await html2canvas(target, { 
                         scale: 2, 
                         backgroundColor: '#ffffff',
                         useCORS: true,
                         logging: false,
-                        windowWidth: 1400
+                        scrollX: 0,
+                        scrollY: 0,
+                        windowWidth: target.scrollWidth,
+                        onclone: (doc) => {
+                            const el = doc.getElementById('export-container');
+                            if (el) {
+                                el.style.transform = 'none';
+                                el.style.margin = '0 auto';
+                                el.style.padding = '20px';
+                                el.style.width = `${target.scrollWidth}px`;
+                            }
+                        }
                     });
 
                     if (tipo === 'png') {
@@ -819,15 +831,25 @@ X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527
                         const pdfWidth = pdf.internal.pageSize.getWidth();
                         const pdfHeight = pdf.internal.pageSize.getHeight();
                         
-                        const imgWidth = pdfWidth - 20; 
-                        const imgHeight = (canvas.height * imgWidth) / canvas.width;
-                        
-                        let yPos = 10;
-                        if (imgHeight < pdfHeight - 20) {
-                            yPos = (pdfHeight - imgHeight) / 2;
+                        // MODIFICACIÓN APLICADA: Calcular el centro perfecto usando matemáticas
+                        const margin = 10;
+                        const maxImgWidth = pdfWidth - (margin * 2);
+                        const maxImgHeight = pdfHeight - (margin * 2);
+
+                        let imgWidth = maxImgWidth;
+                        let imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+                        // Limitar la altura si excede el tamaño de la hoja
+                        if (imgHeight > maxImgHeight) {
+                            imgHeight = maxImgHeight;
+                            imgWidth = (canvas.width * imgHeight) / canvas.height;
                         }
 
-                        pdf.addImage(imgData, 'PNG', 10, yPos, imgWidth, imgHeight);
+                        // Cálculo central horizontal y vertical
+                        const xPos = (pdfWidth - imgWidth) / 2;
+                        const yPos = (pdfHeight - imgHeight) / 2;
+
+                        pdf.addImage(imgData, 'PNG', xPos, yPos, imgWidth, imgHeight);
                         pdf.save(`Horario_CEET_FIQ_${new Date().toISOString().slice(0,10)}.pdf`);
                         showToast("PDF exportado con éxito", 'success');
                     }
@@ -899,367 +921,146 @@ X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527
                                 <p className="text-[10px] text-slate-500 font-bold uppercase mt-1 tracking-wider">Cruces de horario</p>
                             </div>
                         </div>
+                        {/* AQUÍ TERMINA EL FRAGMENTO CORTADO Y COMIENZA LA RECONSTRUCCIÓN */}
                         <div className="bg-white border border-slate-200 rounded-2xl p-4 flex items-center gap-4 shadow-sm hover:shadow-md transition">
                             <div className="w-10 h-10 rounded-xl bg-cyan-50 text-cyan-500 flex items-center justify-center text-base border border-cyan-100"><i className="fa-regular fa-clock"></i></div>
                             <div>
-                                <p className="text-2xl font-black text-slate-800 leading-none">{horasSemanales}h</p>
-                                <p className="text-[10px] text-slate-500 font-bold uppercase mt-1 tracking-wider">Horas de clase</p>
-                            </div>
-                        </div>
-                        <div className="bg-white border border-slate-200 rounded-2xl p-4 flex items-center gap-4 col-span-2 md:col-span-4 lg:col-span-1 shadow-sm hover:shadow-md transition">
-                            <div className="w-10 h-10 rounded-xl bg-violet-50 text-violet-500 flex items-center justify-center text-base border border-violet-100"><i className="fa-solid fa-mug-hot"></i></div>
-                            <div>
-                                <p className="text-2xl font-black text-slate-800 leading-none">{horasLibres}h</p>
-                                <p className="text-[10px] text-slate-500 font-bold uppercase mt-1 tracking-wider">Tiempo libre</p>
+                                <p className="text-2xl font-black text-slate-800 leading-none">{horasSemanales}</p>
+                                <p className="text-[10px] text-slate-500 font-bold uppercase mt-1 tracking-wider">Horas de Clase</p>
                             </div>
                         </div>
                     </div>
 
-                    {/* SECCIÓN PRINCIPAL */}
-                    <div className="flex flex-col lg:flex-row lg:flex-1 lg:min-h-0 gap-3 md:gap-4 pb-2">
-                        
-                        <div className="w-full lg:w-[350px] shrink-0 bg-white rounded-2xl shadow-sm border border-slate-200 flex flex-col h-[500px] lg:h-auto overflow-hidden">
-                            <div className="p-5 border-b border-slate-100 bg-slate-50/50">
-                                <h2 className="font-black text-base text-slate-800 mb-4 flex items-center gap-2"><i className="fa-solid fa-layer-group text-brand-accent"></i> Catálogo de Cursos</h2>
-                                <div className="space-y-3">
-                                    <div className="relative">
-                                        <i className="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-slate-400 text-sm"></i>
-                                        <input type="text" placeholder="Buscar curso, código o docente..." className="w-full pl-10 pr-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:border-brand-accent focus:ring-1 focus:ring-brand-accent transition-all shadow-sm" value={busqueda} onChange={(e) => setBusqueda(e.target.value)} />
-                                    </div>
-                                    <select className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-600 focus:outline-none focus:border-brand-accent focus:ring-1 focus:ring-brand-accent transition-all cursor-pointer shadow-sm" value={filtroCiclo} onChange={(e) => setFiltroCiclo(e.target.value)}>
-                                        <option value="Todos">Todos los ciclos</option>
-                                        <option value="I">CICLO I</option><option value="II">CICLO II</option><option value="III">CICLO III</option><option value="IV">CICLO IV</option><option value="V">CICLO V</option><option value="VI">CICLO VI</option><option value="VII">CICLO VII</option><option value="VIII">CICLO VIII</option><option value="IX">CICLO IX</option><option value="X">CICLO X</option>
-                                    </select>
+                    <div className="flex flex-col lg:flex-row gap-4 h-full overflow-hidden mt-2">
+                        {/* CONTENEDOR LATERAL (Buscador y Cursos) */}
+                        <div className="w-full lg:w-1/3 xl:w-1/4 flex flex-col gap-3 bg-white border border-slate-200 rounded-2xl p-4 shadow-sm overflow-hidden h-[500px] lg:h-auto shrink-0">
+                            <div className="flex gap-2">
+                                <select value={filtroCiclo} onChange={(e) => setFiltroCiclo(e.target.value)} className="bg-slate-50 border border-slate-200 text-slate-700 text-xs font-bold rounded-xl px-3 py-2 outline-none focus:border-brand-accent w-1/3">
+                                    <option value="Todos">Todos</option>
+                                    {['I','II','III','IV','V','VI','VII','VIII','IX','X'].map(c => <option key={c} value={c}>Ciclo {c}</option>)}
+                                </select>
+                                <div className="relative w-2/3">
+                                    <i className="fa-solid fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                                    <input type="text" placeholder="Buscar curso..." value={busqueda} onChange={(e) => setBusqueda(e.target.value)} className="w-full bg-slate-50 border border-slate-200 text-slate-700 text-xs font-bold rounded-xl pl-9 pr-3 py-2 outline-none focus:border-brand-accent placeholder:text-slate-400 font-medium" />
                                 </div>
                             </div>
-                            
-                            <div className="flex-1 overflow-y-auto scroll-clean p-4 bg-[#f8fafc]">
-                                {Object.keys(cursosPorCiclo).map(cicloKey => (
-                                    <div key={cicloKey} className="mb-6">
-                                        <div className="flex justify-between items-center mb-3 px-1">
-                                            <span className="font-black text-xs text-brand bg-brand-light px-2.5 py-1 rounded-md tracking-wider border border-blue-100">CICLO {cicloKey}</span>
-                                            <span className="text-[10px] text-slate-400 font-bold">{cursosPorCiclo[cicloKey].length} cursos <i className="fa-solid fa-chevron-up ml-1 text-[8px]"></i></span>
-                                        </div>
-                                        
-                                        {cursosPorCiclo[cicloKey].map((curso, idx) => {
-                                            const bColor = borderColors[idx % borderColors.length];
-                                            return (
-                                                <div key={curso.id} className={`mb-4 bg-white border border-slate-200 border-l-[4px] rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow ${bColor}`}>
-                                                    <div className="p-4">
-                                                        <div className="flex justify-between items-start mb-2">
-                                                            <h3 className="font-black text-[12px] uppercase text-slate-800 leading-tight pr-2">{curso.nombre}</h3>
-                                                            <span className="bg-slate-50 text-slate-500 border border-slate-200 text-[9px] font-bold px-1.5 py-0.5 rounded whitespace-nowrap">{Object.keys(curso.seccionesBase).length} sec.</span>
-                                                        </div>
-                                                        <div className="flex items-center gap-2 mb-4 text-[10px] text-slate-500 font-bold">
-                                                            <span className="bg-slate-100 text-slate-700 px-2 py-0.5 rounded uppercase border border-slate-200">{curso.codigo}</span>
-                                                            <span>• {curso.creditos} Créditos</span>
-                                                        </div>
-                                                        
-                                                        <div className="space-y-3">
-                                                            {Object.values(curso.seccionesBase).map(base => {
-                                                                const hasTP = base.tp.length > 0;
-                                                                const labs = Object.keys(base.labs);
-                                                                const tpID = `${curso.id}_${base.seccion}_TP`;
-                                                                const isTPAdded = seccionesAgregadas.some(s => s.id === tpID);
-
-                                                                const cupos = hasTP ? base.tp[0].cupos : (labs.length > 0 ? base.labs[labs[0]][0].cupos : "40");
-
-                                                                return (
-                                                                    <div key={base.id} className="space-y-2">
-                                                                        {hasTP && (
-                                                                            <div className={`border rounded-xl p-3 bg-white transition-all ${isTPAdded ? 'border-brand-accent ring-1 ring-brand-accent/30 bg-blue-50/50 shadow-sm' : 'border-slate-200 hover:border-slate-300'}`}>
-                                                                                <div className="flex justify-between items-center mb-3">
-                                                                                    <span className="bg-slate-50 text-slate-700 text-[10px] font-black px-2 py-1 rounded border border-slate-200 shadow-sm">SECCIÓN {base.seccion}</span>
-                                                                                    <div className="flex items-center gap-2">
-                                                                                        <span className="text-[9px] text-slate-500 font-bold bg-slate-50 px-1.5 py-0.5 rounded border border-slate-100">{cupos} vac.</span>
-                                                                                        <button onClick={() => toggleSeccion(curso, tpID, base.seccion, base.tp, 'TP')} className={`w-7 h-7 rounded-lg flex items-center justify-center transition-all border shadow-sm ${isTPAdded ? 'bg-red-50 border-red-200 text-red-500 hover:bg-red-100' : 'bg-white border-slate-200 text-brand-accent hover:bg-slate-50 hover:border-blue-200'}`}>
-                                                                                            <i className={`fa-solid ${isTPAdded ? 'fa-minus text-xs' : 'fa-plus text-xs'}`}></i>
-                                                                                        </button>
-                                                                                    </div>
-                                                                                </div>
-                                                                                <div className="space-y-1.5 mt-2">
-                                                                                    {base.tp.map((h, i) => (
-                                                                                        <div key={i} className="text-[10px] border-b border-slate-100 pb-1.5 last:border-0 last:pb-0">
-                                                                                            <div className="flex justify-between font-black text-slate-700 mb-1">
-                                                                                                <span>{h.dia} <span className="font-semibold text-slate-500 ml-1">{h.inicio} - {h.fin}</span></span>
-                                                                                                <span className="bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded border border-slate-200">{h.aula} [{h.tipo}]</span>
-                                                                                            </div>
-                                                                                            <div className="text-slate-500 font-medium truncate" title={h.docente}><i className="fa-solid fa-user-tie text-[9px] mr-1.5 text-slate-400"></i>{h.docente}</div>
-                                                                                        </div>
-                                                                                    ))}
-                                                                                </div>
-                                                                            </div>
-                                                                        )}
-
-                                                                        {labs.length > 0 && (
-                                                                            <div className="pl-3 border-l-2 border-brand-light space-y-2 mt-2 ml-2">
-                                                                                {labs.map(labSec => {
-                                                                                    const labHorarios = base.labs[labSec];
-                                                                                    const labID = `${curso.id}_${labSec}_LAB`;
-                                                                                    const isLabAdded = seccionesAgregadas.some(s => s.id === labID);
-                                                                                    const cupLab = labHorarios[0].cupos;
-
-                                                                                    return (
-                                                                                        <div key={labSec} className={`border rounded-xl p-3 bg-white transition-all ${isLabAdded ? 'border-brand-accent ring-1 ring-brand-accent/30 bg-blue-50/50 shadow-sm' : 'border-slate-200 hover:border-slate-300'}`}>
-                                                                                            <div className="flex justify-between items-center mb-3">
-                                                                                                <span className="bg-slate-50 text-slate-700 text-[10px] font-black px-2 py-1 rounded border border-slate-200 shadow-sm">SEC {labSec} <span className="text-brand-accent">(LAB)</span></span>
-                                                                                                <div className="flex items-center gap-2">
-                                                                                                    <span className="text-[9px] text-slate-500 font-bold bg-slate-50 px-1.5 py-0.5 rounded border border-slate-100">{cupLab} vac.</span>
-                                                                                                    <button onClick={() => toggleSeccion(curso, labID, labSec, labHorarios, 'LAB')} className={`w-7 h-7 rounded-lg flex items-center justify-center transition-all border shadow-sm ${isLabAdded ? 'bg-red-50 border-red-200 text-red-500 hover:bg-red-100' : 'bg-white border-slate-200 text-brand-accent hover:bg-slate-50 hover:border-blue-200'}`}>
-                                                                                                        <i className={`fa-solid ${isLabAdded ? 'fa-minus text-xs' : 'fa-plus text-xs'}`}></i>
-                                                                                                    </button>
-                                                                                                </div>
-                                                                                            </div>
-                                                                                            <div className="space-y-1.5">
-                                                                                                {labHorarios.map((h, i) => (
-                                                                                                    <div key={i} className="text-[10px] border-b border-slate-100 pb-1.5 last:border-0 last:pb-0">
-                                                                                                        <div className="flex justify-between font-black text-slate-700 mb-1">
-                                                                                                            <span>{h.dia} <span className="font-semibold text-slate-500 ml-1">{h.inicio} - {h.fin}</span></span>
-                                                                                                            <span className="bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded border border-slate-200">{h.aula}</span>
-                                                                                                        </div>
-                                                                                                        <div className="text-slate-500 font-medium truncate" title={h.docente}><i className="fa-solid fa-flask text-[9px] mr-1.5 text-slate-400"></i>{h.docente}</div>
-                                                                                                    </div>
-                                                                                                ))}
-                                                                                            </div>
-                                                                                        </div>
-                                                                                    )
-                                                                                })}
-                                                                            </div>
-                                                                        )}
-                                                                    </div>
-                                                                )
-                                                            })}
-                                                        </div>
+                            <div className="flex-1 overflow-y-auto scroll-clean pr-2 flex flex-col gap-3">
+                                {Object.keys(cursosPorCiclo).map(ciclo => (
+                                    <div key={ciclo}>
+                                        <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1 border-b border-slate-100 pb-1">Ciclo {ciclo}</div>
+                                        <div className="flex flex-col gap-2">
+                                            {cursosPorCiclo[ciclo].map(curso => (
+                                                <div key={curso.id} className="bg-slate-50 border border-slate-200 rounded-xl p-3 hover:border-brand-accent transition group">
+                                                    <div className="font-bold text-xs text-slate-800 leading-tight mb-2">{curso.nombre}</div>
+                                                    <div className="flex flex-col gap-1.5">
+                                                        {Object.values(curso.seccionesBase).map(sec => (
+                                                            <div key={sec.id} className="bg-white border border-slate-100 rounded-lg p-2 shadow-sm">
+                                                                <div className="text-[10px] font-bold text-slate-600 mb-1">Sec. {sec.seccion}</div>
+                                                                <div className="flex flex-wrap gap-1">
+                                                                    {sec.tp.length > 0 && (
+                                                                        <button onClick={() => toggleSeccion(curso, `${curso.id}_${sec.seccion}_TP`, sec.seccion, sec.tp, 'TP')} className={`text-[10px] font-bold px-2 py-1 rounded-md transition ${seccionesAgregadas.some(s => s.id === `${curso.id}_${sec.seccion}_TP`) ? 'bg-brand text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>TP</button>
+                                                                    )}
+                                                                    {Object.keys(sec.labs).map(labKey => (
+                                                                        <button key={labKey} onClick={() => toggleSeccion(curso, `${curso.id}_${sec.seccion}_${labKey}`, labKey, sec.labs[labKey], 'LAB')} className={`text-[10px] font-bold px-2 py-1 rounded-md transition ${seccionesAgregadas.some(s => s.id === `${curso.id}_${sec.seccion}_${labKey}`) ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>{labKey}</button>
+                                                                    ))}
+                                                                </div>
+                                                            </div>
+                                                        ))}
                                                     </div>
                                                 </div>
-                                            )
-                                        })}
+                                            ))}
+                                        </div>
                                     </div>
                                 ))}
                             </div>
                         </div>
 
-                        <div className="flex-1 bg-white rounded-2xl shadow-sm border border-slate-200 flex flex-col min-h-[600px] lg:min-h-0 lg:h-auto relative overflow-hidden">
-                            
-                            <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-white relative z-[60] flex-wrap gap-4">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-8 h-8 rounded-lg bg-blue-50 text-brand-accent flex items-center justify-center"><i className="fa-regular fa-calendar-days"></i></div>
-                                    <h2 className="font-black text-lg text-slate-800">Mi Horario</h2>
-                                    <span className="bg-slate-50 text-slate-500 border border-slate-200 text-[10px] font-bold px-2 py-1 rounded-md ml-2 uppercase tracking-wider">Vista Semanal</span>
+                        {/* CONTENEDOR PRINCIPAL (Calendario y Botones) */}
+                        <div className="flex-1 flex flex-col gap-3 h-[600px] lg:h-auto shrink-0 relative min-w-0">
+                            {/* Toolbar de herramientas */}
+                            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-2 flex justify-between items-center overflow-x-auto scroll-clean">
+                                <div className="flex gap-2">
+                                    <button onClick={undoAction} disabled={historial.length===0} className="px-3 py-1.5 bg-slate-50 text-slate-600 hover:bg-slate-100 disabled:opacity-50 border border-slate-200 rounded-lg text-xs font-bold transition flex items-center gap-2"><i className="fa-solid fa-rotate-left"></i> Deshacer</button>
+                                    <button onClick={triggerLimpiarHorario} disabled={seccionesAgregadas.length===0} className="px-3 py-1.5 bg-red-50 text-red-600 hover:bg-red-100 disabled:opacity-50 border border-red-200 rounded-lg text-xs font-bold transition flex items-center gap-2"><i className="fa-regular fa-trash-can"></i> Vaciar</button>
                                 </div>
-                                <div className="flex items-center gap-2 relative">
-                                    <button onClick={triggerLimpiarHorario} className="bg-white border border-red-200 text-red-500 hover:bg-red-50 px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 shadow-sm">
-                                        <i className="fa-regular fa-trash-can"></i> Vaciar
-                                    </button>
-                                    <button onClick={undoAction} disabled={historial.length === 0} className="bg-white border border-slate-200 text-slate-500 hover:bg-slate-50 px-3 py-2 rounded-xl text-sm transition flex items-center justify-center disabled:opacity-50 shadow-sm" title="Deshacer">
-                                        <i className="fa-solid fa-rotate-left"></i>
-                                    </button>
-                                    
-                                    {/* BOTÓN DESPLEGABLE DE EXPORTACIÓN */}
-                                    <div className="relative">
-                                        <button onClick={() => setDropdownOpen(!dropdownOpen)} className="bg-brand hover:bg-brand-dark text-white px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 shadow-sm">
-                                            <i className="fa-solid fa-download"></i> Exportar Horario <i className="fa-solid fa-chevron-down text-[10px]"></i>
-                                        </button>
-
-                                        <div className={`absolute right-0 mt-2 w-52 bg-white border border-slate-200 rounded-xl shadow-xl z-[70] py-2 dropdown-menu ${dropdownOpen ? 'dropdown-open' : 'dropdown-closed'}`}>
-                                            <button onClick={() => { setDropdownOpen(false); exportar('png'); }} className="w-full text-left px-4 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-2.5">
-                                                <i className="fa-solid fa-image text-brand-accent"></i> Exportar como Imagen (PNG)
-                                            </button>
-                                            <button onClick={() => { setDropdownOpen(false); exportar('pdf'); }} className="w-full text-left px-4 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-2.5">
-                                                <i className="fa-solid fa-file-pdf text-red-500"></i> Exportar como PDF (A4)
-                                            </button>
-                                        </div>
-                                    </div>
+                                <div className="flex gap-2">
+                                    <button onClick={() => exportar('png')} className="px-3 py-1.5 bg-slate-800 text-white hover:bg-slate-700 rounded-lg text-xs font-bold transition shadow-sm flex items-center gap-2"><i className="fa-regular fa-image"></i> PNG</button>
+                                    <button onClick={() => exportar('pdf')} className="px-3 py-1.5 bg-red-600 text-white hover:bg-red-700 rounded-lg text-xs font-bold transition shadow-sm flex items-center gap-2"><i className="fa-regular fa-file-pdf"></i> PDF</button>
                                 </div>
                             </div>
 
-                            <div className="flex-1 overflow-auto bg-white scroll-clean w-full relative">
-                                <div ref={calendarRef} className="min-w-[700px] lg:min-w-full relative" style={{ height: `${TOTAL_HORAS * 60 + 40}px` }}>
-                                    
-                                    <div className="flex border-b border-slate-200 bg-[#f8fafc] sticky top-0 z-30 shadow-sm">
-                                        <div className="w-16 border-r border-slate-200 shrink-0 flex items-center justify-center font-black text-[10px] text-slate-400 uppercase tracking-widest">Hora</div>
-                                        {diasSemana.map(dia => (<div key={dia} className="flex-1 text-center py-3 font-black text-xs text-slate-700 uppercase border-r border-slate-200 last:border-0">{dia}</div>))}
+                            {/* Renderizado de Calendario */}
+                            <div className="flex-1 bg-white border border-slate-200 rounded-2xl shadow-sm overflow-auto scroll-clean relative">
+                                <div id="export-container" ref={exportTemplateRef} className="min-w-[800px] w-full p-6 bg-white relative">
+                                    {/* Cabecera interna para darle mejor formato a la exportación */}
+                                    <div className="text-center mb-6 pb-4 border-b border-slate-100">
+                                        <h2 className="text-2xl font-black text-slate-800 uppercase tracking-tight">Horario de Clases 2026-B</h2>
+                                        <p className="text-sm text-slate-500 font-bold mt-1 uppercase tracking-wider">Facultad de Ingeniería Química - Universidad Nacional del Callao</p>
                                     </div>
 
-                                    <div className="relative w-full" style={{ height: `${TOTAL_HORAS * 60}px` }}>
-                                        <div className="absolute inset-0 flex">
-                                            <div className="w-16 shrink-0 border-r border-slate-200 bg-[#f8fafc]/50 z-10"></div>
-                                            {diasSemana.map((_, i) => (<div key={i} className="flex-1 border-r border-slate-100 last:border-0 grid-bg"></div>))}
-                                        </div>
-                                        
-                                        <div className="absolute top-0 left-0 w-16 text-center text-xs text-slate-400 font-bold z-10">
+                                    <div className="flex relative">
+                                        {/* Columna de Horas */}
+                                        <div className="w-16 shrink-0 relative mt-8">
                                             {Array.from({length: TOTAL_HORAS + 1}).map((_, i) => (
-                                                <div key={i} className="h-[60px] relative border-b border-slate-200/50">
-                                                    <span className="absolute -top-2.5 left-0 w-full bg-white/80"><span className="text-slate-700 font-black">{String(i + HORA_INICIO).padStart(2, '0')}:00</span></span>
+                                                <div key={i} className="h-[60px] text-right pr-2 relative -top-3">
+                                                    <span className="text-[10px] font-black text-slate-400 bg-white px-1">{formatHourLine(HORA_INICIO + i)}</span>
                                                 </div>
                                             ))}
                                         </div>
 
-                                        {/* Bloques de Horario Agregados */}
-                                        {seccionesAgregadas.map((sec) => {
-                                            return sec.horarios.map((h, hIdx) => {
-                                                const diaIdx = diasSemana.indexOf(h.dia);
-                                                if (diaIdx === -1) return null;
+                                        {/* Cuadrícula de Días */}
+                                        <div className="flex-1 grid grid-cols-6 grid-bg border-l border-t border-slate-200 relative">
+                                            {diasSemana.map(dia => (
+                                                <div key={dia} className="border-r border-slate-200 relative">
+                                                    <div className="h-8 bg-slate-50 border-b border-slate-200 flex items-center justify-center text-xs font-black text-slate-600 absolute top-0 w-full -mt-8">{dia}</div>
+                                                </div>
+                                            ))}
+                                            
+                                            {/* Bloques de Asignaturas */}
+                                            {seccionesAgregadas.map((sec, secIdx) => {
+                                                const colorClass = borderColors[secIdx % borderColors.length];
+                                                const bgClass = colorClass.replace('border-', 'bg-').replace(']', ']/10');
+                                                const textClass = colorClass.replace('border-', 'text-');
+                                                
+                                                return sec.horarios.map((h, hIdx) => {
+                                                    const diaIndex = diasSemana.indexOf(h.dia);
+                                                    if(diaIndex === -1) return null;
+                                                    
+                                                    const startMins = timeToMins(h.inicio) - (HORA_INICIO * 60);
+                                                    const duration = timeToMins(h.fin) - timeToMins(h.inicio);
+                                                    
+                                                    const top = (startMins / 60) * 60;
+                                                    const height = (duration / 60) * 60;
 
-                                                const startMins = timeToMins(h.inicio);
-                                                const endMins = timeToMins(h.fin);
-                                                const topPos = ((startMins - HORA_INICIO * 60) / 60) * 60;
-                                                const blockHeight = ((endMins - startMins) / 60) * 60;
-
-                                                const isLab = sec.itemType === 'LAB' || h.tipo === 'L';
-                                                const bgColor = isLab 
-                                                    ? 'bg-cyan-50 border-cyan-400 text-cyan-900 hover:bg-cyan-100' 
-                                                    : 'bg-blue-50 border-blue-500 text-blue-950 hover:bg-blue-100';
-
-                                                return (
-                                                    <div
-                                                        key={`${sec.id}_${hIdx}`}
-                                                        className={`absolute rounded-xl p-2.5 border-l-4 shadow-sm class-block overflow-hidden transition-all ${bgColor}`}
-                                                        style={{
-                                                            top: `${topPos + 1}px`,
-                                                            height: `${blockHeight - 2}px`,
-                                                            left: `calc(4rem + ${diaIdx} * ((100% - 4rem) / 6) + 2px)`,
-                                                            width: `calc((100% - 4rem) / 6 - 4px)`,
-                                                            zIndex: 20
-                                                        }}
-                                                    >
-                                                        <div className="font-extrabold text-[11px] leading-tight truncate uppercase">{sec.nombreCurso}</div>
-                                                        <div className="flex items-center gap-1 mt-1 text-[9px] font-bold opacity-90">
-                                                            <span className="bg-white/80 px-1.5 py-0.5 rounded border border-black/10">Sec {sec.seccion}</span>
-                                                            <span className="truncate">{h.aula}</span>
-                                                        </div>
-                                                        {blockHeight > 55 && (
-                                                            <div className="text-[9px] font-medium opacity-80 truncate mt-1">
-                                                                <i className="fa-solid fa-user-tie text-[8px] mr-1"></i>{h.docente}
+                                                    return (
+                                                        <div key={`${sec.id}_${hIdx}`} className={`absolute left-0 w-full px-1 py-0.5 class-block z-10`} style={{
+                                                            left: `${(diaIndex / 6) * 100}%`, width: `${100/6}%`, top: `${top}px`, height: `${height}px`
+                                                        }}>
+                                                            <div className={`w-full h-full border-l-[3px] ${colorClass} bg-white rounded-r-md shadow-[0_2px_5px_rgba(0,0,0,0.05)] p-1.5 flex flex-col justify-between overflow-hidden group relative`}>
+                                                                <div className={`absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none ${colorClass.replace('border-', 'bg-')}`}></div>
+                                                                <div>
+                                                                    <div className={`text-[8px] font-black tracking-wider uppercase mb-0.5 ${textClass} flex justify-between`}>
+                                                                        <span>{h.tipo}-{sec.seccion}</span>
+                                                                        <span>{h.aula}</span>
+                                                                    </div>
+                                                                    <div className="text-[9px] font-bold text-slate-800 leading-tight break-words" title={sec.nombreCurso}>{sec.nombreCurso}</div>
+                                                                </div>
+                                                                <div>
+                                                                    <div className="text-[8px] text-slate-500 font-medium truncate mb-0.5"><i className="fa-solid fa-user-tie text-[7px]"></i> {h.docente}</div>
+                                                                    <div className="text-[8px] font-bold text-slate-600 bg-slate-50 px-1 py-0.5 rounded border border-slate-100 inline-block">{h.inicio} - {h.fin}</div>
+                                                                </div>
+                                                                <button onClick={() => toggleSeccion(sec, sec.id, sec.seccion, sec.horarios, sec.itemType)} className="absolute top-1 right-1 w-4 h-4 bg-red-100 text-red-500 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition z-20 hover:bg-red-500 hover:text-white">
+                                                                    <i className="fa-solid fa-xmark text-[8px]"></i>
+                                                                </button>
                                                             </div>
-                                                        )}
-                                                        <div className="text-[9px] font-bold opacity-75 mt-1">
-                                                            {h.inicio} - {h.fin}
                                                         </div>
-                                                    </div>
-                                                );
-                                            });
-                                        })}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* PLANTILLA EXCLUSIVA PARA EXPORTACIÓN (OFF-SCREEN) */}
-                    <div 
-                        ref={exportTemplateRef} 
-                        className="p-8 bg-white text-slate-800" 
-                        style={{ 
-                            position: 'fixed', 
-                            top: '-9999px', 
-                            left: '-9999px', 
-                            width: '1350px', 
-                            zIndex: -1,
-                            fontFamily: "'Inter', sans-serif"
-                        }}
-                    >
-                        {/* Encabezado Exportación */}
-                        <div className="flex justify-between items-center border-b-2 border-brand pb-6 mb-6">
-                            <div className="flex items-center gap-5">
-                                <div className="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center border-2 border-blue-200">
-                                    <i className="fa-solid fa-atom text-4xl text-brand"></i>
-                                </div>
-                                <div>
-                                    <h1 className="text-2xl font-black text-slate-900 tracking-tight">UNIVERSIDAD NACIONAL DEL CALLAO</h1>
-                                    <h2 className="text-lg font-bold text-brand">Facultad de Ingeniería Química — CEET FIQ</h2>
-                                    <p className="text-xs text-slate-500 font-medium">Centro de Estudios "María Estela Toledo" | Programación Horaria 2026-B</p>
-                                </div>
-                            </div>
-                            <div className="text-right">
-                                <div className="bg-brand-light border border-blue-200 rounded-xl px-4 py-2 inline-block text-left shadow-sm">
-                                    <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Resumen Académico</div>
-                                    <div className="text-sm font-black text-brand">{totalCreditos} Créditos Seleccionados</div>
-                                    <div className="text-[11px] font-semibold text-slate-600">{new Set(seccionesAgregadas.map(s => s.cursoId)).size} Cursos Inscritos</div>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Tabla de Horario Exportable */}
-                        <div className="border border-slate-300 rounded-2xl overflow-hidden shadow-sm bg-white">
-                            <div className="flex bg-slate-100 border-b border-slate-300">
-                                <div className="w-20 border-r border-slate-300 py-3 text-center font-black text-xs text-slate-600 uppercase tracking-wider">
-                                    Hora
-                                </div>
-                                {diasSemana.map(dia => (
-                                    <div key={dia} className="flex-1 py-3 text-center font-black text-xs text-slate-800 uppercase border-r border-slate-300 last:border-0 bg-slate-100">
-                                        {dia}
-                                    </div>
-                                ))}
-                            </div>
-
-                            <div className="relative w-full" style={{ height: `${TOTAL_HORAS * 55}px` }}>
-                                <div className="absolute inset-0 flex">
-                                    <div className="w-20 shrink-0 border-r border-slate-300 bg-slate-50/50"></div>
-                                    {diasSemana.map((_, i) => (
-                                        <div key={i} className="flex-1 border-r border-slate-200 last:border-0 grid-bg"></div>
-                                    ))}
-                                </div>
-
-                                <div className="absolute top-0 left-0 w-20 text-center text-xs text-slate-500 font-bold z-10">
-                                    {Array.from({ length: TOTAL_HORAS + 1 }).map((_, i) => (
-                                        <div key={i} className="h-[55px] relative border-b border-slate-200/60">
-                                            <span className="absolute -top-2.5 left-0 w-full text-center bg-white/90 text-[11px] font-bold text-slate-600">
-                                                {String(i + HORA_INICIO).padStart(2, '0')}:00
-                                            </span>
+                                                    );
+                                                });
+                                            })}
                                         </div>
-                                    ))}
+                                    </div>
                                 </div>
-
-                                {seccionesAgregadas.map((sec) => {
-                                    return sec.horarios.map((h, hIdx) => {
-                                        const diaIdx = diasSemana.indexOf(h.dia);
-                                        if (diaIdx === -1) return null;
-
-                                        const startMins = timeToMins(h.inicio);
-                                        const endMins = timeToMins(h.fin);
-                                        const topPos = ((startMins - HORA_INICIO * 60) / 60) * 55;
-                                        const blockHeight = ((endMins - startMins) / 60) * 55;
-
-                                        const isLab = sec.itemType === 'LAB' || h.tipo === 'L';
-                                        const bgColor = isLab 
-                                            ? 'bg-cyan-50 border-cyan-500 text-cyan-950' 
-                                            : 'bg-blue-50 border-blue-600 text-blue-950';
-
-                                        return (
-                                            <div
-                                                key={`exp_${sec.id}_${hIdx}`}
-                                                className={`absolute rounded-lg p-2 border-l-4 shadow-sm overflow-hidden flex flex-col justify-between ${bgColor}`}
-                                                style={{
-                                                    top: `${topPos + 2}px`,
-                                                    height: `${blockHeight - 4}px`,
-                                                    left: `calc(5rem + ${diaIdx} * ((100% - 5rem) / 6) + 3px)`,
-                                                    width: `calc((100% - 5rem) / 6 - 6px)`,
-                                                    zIndex: 20
-                                                }}
-                                            >
-                                                <div>
-                                                    <div className="font-extrabold text-[11px] leading-tight uppercase text-slate-900">{sec.nombreCurso}</div>
-                                                    <div className="flex items-center gap-1.5 mt-1 text-[9px] font-bold">
-                                                        <span className="bg-white/90 px-1.5 py-0.5 rounded border border-slate-300 text-slate-800">Sec {sec.seccion}</span>
-                                                        <span className="bg-slate-200/80 px-1.5 py-0.5 rounded text-slate-700">{h.aula}</span>
-                                                    </div>
-                                                </div>
-                                                <div className="mt-1 pt-1 border-t border-slate-200/60 flex justify-between items-end text-[9px] font-bold text-slate-600">
-                                                    <span className="truncate max-w-[120px]"><i className="fa-solid fa-user-tie text-[8px] mr-1"></i>{h.docente}</span>
-                                                    <span className="whitespace-nowrap text-brand-dark font-black">{h.inicio} - {h.fin}</span>
-                                                </div>
-                                            </div>
-                                        );
-                                    });
-                                })}
                             </div>
-                        </div>
-
-                        {/* Pie de página exportación */}
-                        <div className="mt-6 flex justify-between items-center text-xs text-slate-400 border-t border-slate-200 pt-4">
-                            <span>CEET FIQ — Centro de Estudios "María Estela Toledo" | Crecemos juntos, aprendemos mejor</span>
-                            <span>Documento generado el {new Date().toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })}</span>
                         </div>
                     </div>
                 </React.Fragment>
