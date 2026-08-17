@@ -71,7 +71,6 @@
         .creator-text { font-weight: 900; letter-spacing: 0.2em; color: #3b82f6; text-shadow: 0 0 10px rgba(59,130,246,0.4); font-size: 0.75rem; text-align: center; margin-bottom: 2px; z-index: 10; position: relative; text-transform: uppercase;}
         .copyright-text { color: #94a3b8; font-size: 0.65rem; text-align: center; letter-spacing: 0.05em; z-index: 10; position: relative;}
 
-        /* Modal Overlay FadeIn */
         @keyframes fadeInOverlay { from { opacity: 0; backdrop-filter: blur(0px); } to { opacity: 1; backdrop-filter: blur(4px); } }
         .modal-bg { animation: fadeInOverlay 0.2s ease-out forwards; }
     </style>
@@ -788,10 +787,10 @@ X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527
                 const target = hiddenExportRef.current;
                 const originalLeft = target.style.left;
                 
-                // Traer al viewport para asegurar renderizado correcto de fuentes y estilos
+                // Traer al viewport temporalmente para renderizado perfecto
                 target.style.left = '0px';
                 
-                // Esperar un momento para asegurar que el DOM actualice
+                // Pequeña pausa para asegurar actualización de DOM
                 await new Promise(r => setTimeout(r, 200));
 
                 const canvas = await html2canvas(target, { 
@@ -800,11 +799,11 @@ X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527
                     useCORS: true,
                     allowTaint: true,
                     logging: false,
-                    windowWidth: 1400, // Fijar el ancho de ventana
+                    windowWidth: 1400,
                     width: 1400
                 });
 
-                // Devolver a su lugar original
+                // Ocultar de nuevo
                 target.style.left = originalLeft;
                 
                 return canvas;
@@ -841,18 +840,14 @@ X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527
                     const canvas = await generarCanvasAltaCalidad();
                     const imgData = canvas.toDataURL('image/png');
                     
-                    // Crear PDF en formato horizontal (Landscape), A4
+                    // Crear un PDF dinámico que abrace el tamaño exacto del canvas generado
                     const pdf = new jspdf.jsPDF({
-                        orientation: 'landscape',
-                        unit: 'mm',
-                        format: 'a4'
+                        orientation: canvas.width > canvas.height ? 'landscape' : 'portrait',
+                        unit: 'px',
+                        format: [canvas.width, canvas.height]
                     });
 
-                    // Calcular dimensiones para que encaje perfecto
-                    const pdfWidth = pdf.internal.pageSize.getWidth();
-                    const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-
-                    pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+                    pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
                     pdf.save('Horario_CEET_FIQ.pdf');
                     
                     showToast("PDF exportado con éxito.", 'success');
@@ -1179,8 +1174,9 @@ X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527
                         <div className="copyright-text">© 2026 UNAC - Centro Estudiantil. Todos los derechos reservados.</div>
                     </footer>
 
+                    {/* ========================================================= */}
                     {/* BLOQUE DE EXPORTACIÓN (CONTENEDOR OCULTO PROFESIONAL) */}
-                    {/* Se ha corregido el layout para asegurar que html2canvas lo dibuje perfecto, usando divs para líneas en lugar de background-images problemáticas */}
+                    {/* ========================================================= */}
                     <div ref={hiddenExportRef} className="bg-white" style={{width: '1400px', position: 'absolute', top: 0, left: '-20000px', padding: '60px', fontFamily: "'Inter', sans-serif", zIndex: -9999}}>
                         
                         {/* Marca de agua */}
@@ -1233,7 +1229,7 @@ X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527
                                     {diasSemana.map((_, i) => <div key={i} style={{flex: 1, borderRight: '1px solid #e2e8f0'}}></div>)}
                                 </div>
                                 
-                                {/* Líneas Horizontales Sólidas (Evita el bug del canvas con gradientes) */}
+                                {/* Líneas Horizontales Sólidas */}
                                 <div className="absolute inset-0" style={{marginLeft: '70px', pointerEvents: 'none'}}>
                                     {Array.from({length: TOTAL_HORAS + 1}).map((_, i) => (
                                         <div key={`h-line-${i}`} style={{height: '60px', width: '100%', borderTop: '1px solid #f1f5f9', boxSizing: 'border-box'}}></div>
@@ -1249,7 +1245,7 @@ X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527
                                     ))}
                                 </div>
                                 
-                                {/* Bloques de Clase Renderizados */}
+                                {/* BLOQUES DE CLASE - DISEÑO MINIMALISTA DENTRO DE LA TABLA */}
                                 {seccionesAgregadas.map((seccion, sIdx) => {
                                     const colores = [
                                         {bg: '#eff6ff', br: '#3b82f6', txt: '#1e40af'},
@@ -1273,47 +1269,74 @@ X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527
                                                     position: 'absolute', 
                                                     top: `${offsetTop}px`, 
                                                     height: `${duration}px`, 
-                                                    width: `calc((100% - 70px) / 6 - 8px)`, // Ajuste para que entre con margen
-                                                    left: `calc(70px + ((100% - 70px) / 6) * ${colIndex} + 4px)`, 
+                                                    width: `calc((100% - 70px) / 6 - 12px)`, // Dejamos margen para que se vea limpio
+                                                    left: `calc(70px + ((100% - 70px) / 6) * ${colIndex} + 6px)`, 
                                                     backgroundColor: c.bg, 
                                                     borderLeft: `6px solid ${c.br}`, 
                                                     borderRadius: '12px', 
-                                                    padding: '8px', 
+                                                    padding: '10px 8px', 
                                                     boxSizing: 'border-box', 
                                                     display: 'flex', 
                                                     flexDirection: 'column', 
                                                     alignItems: 'center', 
-                                                    justifyContent: 'center', 
-                                                    textAlign: 'center', 
+                                                    justifyContent: 'center', // Centrado perfecto
+                                                    gap: '8px', // Espacio limpio entre el titulo y la info
                                                     boxShadow: '0 4px 6px rgba(0,0,0,0.05)',
-                                                    overflow: 'hidden' // CLAVE: Previene que el texto se salga de la caja
+                                                    overflow: 'hidden'
                                                 }}
                                             >
-                                                {/* Nombre del curso: truncado si es muy largo */}
-                                                <span style={{fontWeight: '900', color: '#0f172a', fontSize: '13px', marginBottom: '4px', textTransform: 'uppercase', lineHeight: '1.1', width: '100%', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden'}}>
+                                                {/* SOLO EL NOMBRE DEL CURSO */}
+                                                <span style={{fontWeight: '900', color: '#0f172a', fontSize: '13px', textAlign: 'center', textTransform: 'uppercase', lineHeight: '1.2'}}>
                                                     {seccion.nombreCurso}
                                                 </span>
                                                 
-                                                <span style={{fontWeight: '800', color: c.txt, fontSize: '11px', marginBottom: '4px'}}>
-                                                    {seccion.codigo} • Sec. {seccion.seccion}
-                                                </span>
-                                                
-                                                {/* Docente (1 sola línea con puntos suspensivos si es enorme) */}
-                                                <span style={{fontSize: '11px', fontWeight: '700', color: '#475569', marginBottom: '6px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', width: '90%'}}>
-                                                    {horario.docente}
-                                                </span>
-                                                
+                                                {/* AULA Y HORA */}
                                                 <div style={{display: 'flex', flexWrap: 'wrap', gap: '6px', alignItems: 'center', justifyContent: 'center'}}>
-                                                    <span style={{fontSize: '10px', fontWeight: '900', color: c.txt, backgroundColor: 'white', padding: '2px 6px', borderRadius: '4px', border: `1px solid ${c.br}40`}}>
-                                                        {horario.aula} | {horario.tipo}
+                                                    <span style={{fontSize: '11px', fontWeight: '900', color: c.txt, backgroundColor: 'white', padding: '3px 8px', borderRadius: '6px', border: `1px solid ${c.br}40`}}>
+                                                        {horario.aula}
                                                     </span>
-                                                    <span style={{fontSize: '11px', fontWeight: '800', color: '#ef4444'}}>
+                                                    <span style={{fontSize: '11px', fontWeight: '800', color: '#ef4444', backgroundColor: 'white', padding: '3px 8px', borderRadius: '6px', border: `1px solid #fee2e2`}}>
                                                         <i className="fa-regular fa-clock"></i> {horario.inicio}-{horario.fin}
                                                     </span>
                                                 </div>
                                             </div>
                                         )
                                     });
+                                })}
+                            </div>
+                        </div>
+
+                        {/* ========================================================= */}
+                        {/* LEYENDA (TIPO FOOTER INTELIGENTE)                         */}
+                        {/* ========================================================= */}
+                        <div style={{marginTop: '40px', backgroundColor: '#f8fafc', padding: '30px', borderRadius: '16px', border: '2px solid #e2e8f0', position: 'relative', zIndex: '1'}}>
+                            <h3 style={{margin: '0 0 20px 0', color: '#1e40af', fontSize: '20px', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '1px', borderBottom: '2px solid #bfdbfe', paddingBottom: '10px'}}>
+                                <i className="fa-solid fa-list-check" style={{marginRight: '10px'}}></i>
+                                Detalle de Cursos y Docentes
+                            </h3>
+                            
+                            <div style={{display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '15px'}}>
+                                {seccionesAgregadas.map((sec, sIdx) => {
+                                    const c = sec.itemType === 'LAB' ? {bg: '#f8fafc', br: '#64748b', txt: '#334155'} : ['#3b82f6', '#10b981', '#ec4899', '#f59e0b', '#8b5cf6'].map(color => ({bg: `${color}15`, br: color, txt: color}))[sIdx % 5];
+                                    
+                                    // Agrupar profesores (por si tiene distintos en diferentes días, aunque usualmente es uno)
+                                    const teachers = [...new Set(sec.horarios.map(h => h.docente))].join(' / ');
+                                    
+                                    return (
+                                        <div key={`leg-${sIdx}`} style={{display: 'flex', alignItems: 'center', backgroundColor: 'white', padding: '12px 20px', borderRadius: '12px', border: '1px solid #e2e8f0', borderLeft: `6px solid ${c.br}`, boxShadow: '0 2px 4px rgba(0,0,0,0.02)'}}>
+                                            <div style={{flex: 1}}>
+                                                <div style={{fontSize: '14px', fontWeight: '900', color: '#0f172a', marginBottom: '6px', textTransform: 'uppercase'}}>{sec.nombreCurso}</div>
+                                                <div style={{fontSize: '12px', color: '#475569', fontWeight: '600', display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '8px'}}>
+                                                    <span style={{color: c.txt, fontWeight: '900', backgroundColor: c.bg, padding: '3px 8px', borderRadius: '6px', border: `1px solid ${c.br}30`}}>
+                                                        {sec.codigo} • Sec. {sec.seccion} ({sec.itemType})
+                                                    </span>
+                                                    <span style={{display: 'flex', alignItems: 'center', gap: '5px'}}>
+                                                        <i className="fa-solid fa-user-tie" style={{color: '#94a3b8'}}></i> {teachers}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )
                                 })}
                             </div>
                         </div>
