@@ -817,43 +817,6 @@ X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527
                 }, 500);
             };
 
-            const exportarPDF = () => {
-                setDropdownOpen(false);
-                if (!validateExport()) return;
-                
-                setIsExporting(true);
-
-                setTimeout(() => {
-                    if(hiddenExportRef.current) {
-                        const target = hiddenExportRef.current;
-                        const originalLeft = target.style.left;
-                        target.style.left = '0px';
-
-                        html2canvas(target, { 
-                            scale: 2, 
-                            backgroundColor: '#ffffff',
-                            useCORS: true
-                        }).then(canvas => {
-                            target.style.left = originalLeft;
-                            const imgData = canvas.toDataURL('image/png');
-                            const { jsPDF } = window.jspdf;
-                            // PDF horizontal (landscape)
-                            const pdf = new jsPDF('l', 'mm', 'a4');
-                            const pdfWidth = pdf.internal.pageSize.getWidth();
-                            const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-                            pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-                            pdf.save('Horario_CEET_FIQ.pdf');
-                            setIsExporting(false);
-                            showToast("Exportación completada", 'success');
-                        }).catch(err => {
-                            console.error(err);
-                            setIsExporting(false);
-                            showToast("Error al exportar", 'error');
-                        });
-                    }
-                }, 500);
-            };
-
             const exportarWord = () => {
                 setDropdownOpen(false);
                 if (!validateExport()) return;
@@ -1122,9 +1085,6 @@ X	TRABAJO DE INVESTIGACIÓN - IFIV64 PLAN 2019* PORLLES LOARTE JOSE ANGEL - 0527
                                             <div className="py-1">
                                                 <button onClick={exportarPNG} className="w-full text-left px-4 py-3 text-xs font-semibold text-slate-700 hover:bg-blue-50 hover:text-brand-accent flex items-center gap-3 transition">
                                                     <i className="fa-solid fa-image text-brand-accent w-4 text-center"></i> Alta Calidad (PNG)
-                                                </button>
-                                                <button onClick={exportarPDF} className="w-full text-left px-4 py-3 text-xs font-semibold text-slate-700 hover:bg-red-50 hover:text-red-600 flex items-center gap-3 transition">
-                                                    <i className="fa-solid fa-file-pdf text-red-500 w-4 text-center"></i> Documento (PDF)
                                                 </button>
                                                 <div className="h-px bg-slate-100 w-full my-1"></div>
                                                 <button onClick={exportarWord} className="w-full text-left px-4 py-3 text-xs font-semibold text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 flex items-center gap-3 transition">
